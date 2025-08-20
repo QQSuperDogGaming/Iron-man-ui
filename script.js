@@ -1,7 +1,17 @@
-/* ===== Utilities ===== */
+/* ===== Real viewport height (mobile 100vh fix) ===== */
+function setRealVh(){
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+setRealVh();
+window.addEventListener('resize', setRealVh, {passive:true});
+window.addEventListener('orientationchange', setRealVh);
+
+/* ===== Helpers & logging ===== */
 const $ = (sel) => document.querySelector(sel);
 const logEl = $('#log');
 function log(line){
+  if(!logEl) return;
   const p = document.createElement('div');
   p.textContent = `[${new Date().toLocaleTimeString()}] ${line}`;
   logEl.appendChild(p);
@@ -14,11 +24,13 @@ function tick(){
   const d = new Date();
   const t = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   $('#clock').textContent = t;
-  $('#dateLine').textContent = d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'2-digit',year:'numeric'});
+  $('#dateLine').textContent = d.toLocaleDateString(undefined,{
+    weekday:'short', month:'short', day:'2-digit', year:'numeric'
+  });
 }
 tick(); setInterval(tick, 1000);
 
-/* ===== Fake network throughput + real latency ===== */
+/* ===== Fake throughput + real latency ===== */
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function updateNet(){
   $('#down').textContent = rand(45, 180).toFixed(1);
@@ -31,7 +43,7 @@ function updateNet(){
 async function ping(){
   const t0 = performance.now();
   try {
-    // Same-page fetch avoids CORS issues
+    // same-origin fetch avoids CORS; no-cors still gives a round-trip
     await fetch(window.location.href, { cache:'no-store', mode:'no-cors' });
     const dt = Math.max(1, performance.now() - t0);
     $('#lat').textContent = dt.toFixed(0);
@@ -71,7 +83,7 @@ function raf(ts){
 }
 requestAnimationFrame(raf);
 
-/* ===== Parallax on core ===== */
+/* ===== Parallax on core (toggleable) ===== */
 let parallaxOn = true;
 const core = document.querySelector('.core');
 window.addEventListener('mousemove', e=>{
@@ -89,7 +101,7 @@ let starOn = true;
 function resizeStars(){
   stars.width = innerWidth; stars.height = innerHeight;
 }
-window.addEventListener('resize', resizeStars);
+window.addEventListener('resize', resizeStars, {passive:true});
 resizeStars();
 
 const STAR_COUNT = 160;
