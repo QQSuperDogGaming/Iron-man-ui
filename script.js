@@ -7,6 +7,62 @@ setRealVh();
 window.addEventListener('resize', setRealVh, {passive:true});
 window.addEventListener('orientationchange', setRealVh);
 
+/* ===== Debounced auto‑FIT (no flashes, centered) ===== */
+let fitRaf = 0;
+function scheduleFit(){
+  if (fitRaf) cancelAnimationFrame(fitRaf);
+  fitRaf = requestAnimationFrame(autoFit);
+}
+function autoFit(){
+  const root = document.querySelector('.hud');
+  if(!root) return;
+
+  // Freeze animations & transitions during measure to avoid flashes
+  document.body.classList.add('nofx');
+
+  // Temporarily turn off parallax & core rotations so it's perfectly centered while measuring
+  const core = document.querySelector('.core');
+  const prevParallax = parallaxOn;
+  const prevTransform = core.style.transform;
+  parallaxOn = false;
+  core.style.transform = 'translate(-50%, -50%)';
+
+  // Reset scale before measuring
+  document.documentElement.style.setProperty('--fit', '1');
+
+  const nodes = [...root.querySelectorAll('.core, .widget:not(.hidden)')];
+  let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+  nodes.forEach(n=>{
+    const r = n.getBoundingClientRect();
+    minL = Math.min(minL, r.left);
+    minT = Math.min(minT, r.top);
+    maxR = Math.max(maxR, r.right);
+    maxB = Math.max(maxB, r.bottom);
+  });
+
+  const boundsW = Math.max(1, maxR - minL);
+  const boundsH = Math.max(1, maxB - minT);
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const margin = 16;
+  const s = Math.min(1, (vw - margin*2)/boundsW, (vh - margin*2)/boundsH);
+
+  document.documentElement.style.setProperty('--fit', String(s));
+
+  // Restore parallax state after we have fit
+  if (prevParallax){
+    parallaxOn = true;
+    core.style.transform = prevTransform || 'translate(-50%, -50%)';
+  }
+
+  // Unfreeze on next frame (prevents flash)
+  requestAnimationFrame(()=> document.body.classList.remove('nofx'));
+}
+
+/* Refit on viewport and known layout changes */
+window.addEventListener('load', scheduleFit);
+window.addEventListener('resize', scheduleFit, {passive:true});
+window.addEventListener('orientationchange', scheduleFit);
+
 /* ===== Helpers & logging ===== */
 const $ = (sel) => document.querySelector(sel);
 const logEl = $('#log');
@@ -18,7 +74,7 @@ function log(line){
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-/* Read current theme color from CSS var (--cy-rgb) for canvases */
+/* Read current theme color for canvases */
 function getThemeRGB(){
   const v = getComputedStyle(document.documentElement).getPropertyValue('--cy-rgb').trim();
   return v || '0, 250, 255';
@@ -30,33 +86,29 @@ function tick(){
   const d = new Date();
   const t = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   $('#clock').textContent = t;
-  $('#dateLine').textContent = d.toLocaleDateString(undefined,{
-    weekday:'short', month:'short', day:'2-digit', year:'numeric'
-  });
+  $('#dateLine').textContent = d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'2-digit', year:'numeric'});
 }
 tick(); setInterval(tick, 1000);
 
-/* ===== Fake throughput + real latency ===== */
+/* ===== Network ===== */
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function updateNet(){
-  $('#down').textContent = rand(45, 180).toFixed(1);
-  $('#up').textContent   = rand(10, 35).toFixed(1);
+  $('#down').textContent = rand(45,180).toFixed(1);
+  $('#up').textContent   = rand(10,35).toFixed(1);
   const ok = Math.random() > .12;
   const state = $('#netState');
   state.textContent = ok ? 'online' : 'packet loss';
-  // Use theme for OK; keep error red
   const theme = `rgb(${getThemeRGB()})`;
-  state.style.borderColor = state.style.color = ok ? theme : '#ff6b6b';
+  state.style.borderColor = ok ? theme : '#ff6b6b';
+  state.style.color = '#fff';
 }
 async function ping(){
   const t0 = performance.now();
-  try {
-    await fetch(window.location.href, { cache:'no-store', mode:'no-cors' });
-    const dt = Math.max(1, performance.now() - t0);
+  try{
+    await fetch(window.location.href, {cache:'no-store', mode:'no-cors'});
+    const dt = Math.max(1, performance.now()-t0);
     $('#lat').textContent = dt.toFixed(0);
-  } catch {
-    $('#lat').textContent = '—';
-  }
+  }catch{ $('#lat').textContent = '—'; }
 }
 updateNet(); setInterval(updateNet, 2600);
 ping(); setInterval(ping, 3000);
@@ -64,9 +116,9 @@ ping(); setInterval(ping, 3000);
 /* ===== Battery & FPS ===== */
 const batPct = $('#batPct'), batBar = $('#batBar'), batState = $('#batState');
 if ('getBattery' in navigator){
-  navigator.getBattery().then(b => {
+  navigator.getBattery().then(b=>{
     function upd(){
-      const pct = Math.round(b.level * 100);
+      const pct = Math.round(b.level*100);
       batPct.textContent = pct + '%';
       batBar.style.width = pct + '%';
       batState.textContent = b.charging ? '(charging)' : '';
@@ -75,224 +127,159 @@ if ('getBattery' in navigator){
     b.addEventListener('chargingchange', upd);
     upd();
   }).catch(()=> batPct.textContent = 'n/a');
-} else {
-  batPct.textContent = 'n/a';
-}
+}else{ batPct.textContent = 'n/a'; }
 
-let fps = 0, frames = 0, last = performance.now();
+let fps=0, frames=0, last=performance.now();
 function raf(ts){
   frames++;
-  if (ts - last >= 1000){
-    fps = frames; frames = 0; last = ts;
-    $('#fps').textContent = fps;
-  }
+  if (ts-last >= 1000){ fps=frames; frames=0; last=ts; $('#fps').textContent=fps; }
   requestAnimationFrame(raf);
 }
 requestAnimationFrame(raf);
 
 /* ===== Parallax on core (toggleable) ===== */
 let parallaxOn = true;
-const core = document.querySelector('.core');
+const coreEl = document.querySelector('.core');
 window.addEventListener('mousemove', e=>{
   if(!parallaxOn) return;
-  const { innerWidth:w, innerHeight:h } = window;
-  const x = (e.clientX / w - .5) * 10;
-  const y = (e.clientY / h - .5) * -10;
-  core.style.transform = `translate(-50%, -50%) rotateX(${y}deg) rotateY(${x}deg)`;
+  const {innerWidth:w, innerHeight:h} = window;
+  const x = (e.clientX/w - .5) * 10;
+  const y = (e.clientY/h - .5) * -10;
+  coreEl.style.transform = `translate(-50%, -50%) rotateX(${y}deg) rotateY(${x}deg)`;
 },{passive:true});
 
-/* ===== Stars particle field ===== */
+/* ===== Stars ===== */
 const stars = document.getElementById('stars');
 const sctx = stars.getContext('2d');
 let starOn = true;
-function resizeStars(){
-  stars.width = innerWidth; stars.height = innerHeight;
-}
+function resizeStars(){ stars.width = innerWidth; stars.height = innerHeight; }
 window.addEventListener('resize', resizeStars, {passive:true});
 resizeStars();
 
 const STAR_COUNT = 160;
-const pts = Array.from({length:STAR_COUNT}, ()=>({
-  x: Math.random()*innerWidth,
-  y: Math.random()*innerHeight,
-  v: 0.2 + Math.random()*0.6,
-  r: Math.random()*1.4+0.4
-}));
-
-let starFill = `rgba(${getThemeRGB()}, .7)`;
-let starGlow = `rgba(${getThemeRGB()}, .9)`;
-function refreshStarColors(){
-  starFill = `rgba(${getThemeRGB()}, .7)`;
-  starGlow = `rgba(${getThemeRGB()}, .9)`;
-}
-
+const pts = Array.from({length:STAR_COUNT}, ()=>({x:Math.random()*innerWidth, y:Math.random()*innerHeight, v:0.2+Math.random()*0.6, r:Math.random()*1.4+0.4}));
+let starFill = `rgba(${getThemeRGB()}, .7)`, starGlow = `rgba(${getThemeRGB()}, .9)`;
+function refreshStarColors(){ starFill = `rgba(${getThemeRGB()}, .7)`; starGlow = `rgba(${getThemeRGB()}, .9)`; }
 function drawStars(){
-  if (!starOn) { sctx.clearRect(0,0,stars.width,stars.height); requestAnimationFrame(drawStars); return; }
+  if(!starOn){ sctx.clearRect(0,0,stars.width,stars.height); return requestAnimationFrame(drawStars); }
   sctx.clearRect(0,0,stars.width,stars.height);
   for(const p of pts){
-    p.x += p.v; if (p.x > innerWidth) { p.x = -5; p.y = Math.random()*innerHeight; }
-    sctx.beginPath(); sctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-    sctx.fillStyle = starFill;
-    sctx.shadowColor = starGlow;
-    sctx.shadowBlur = 8;
-    sctx.fill(); sctx.shadowBlur = 0;
+    p.x += p.v; if(p.x > innerWidth){ p.x = -5; p.y = Math.random()*innerHeight; }
+    sctx.beginPath(); sctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    sctx.fillStyle = starFill; sctx.shadowColor = starGlow; sctx.shadowBlur = 8; sctx.fill(); sctx.shadowBlur = 0;
   }
   requestAnimationFrame(drawStars);
 }
 drawStars();
 
-/* ===== Mic visualizer (uses theme color) ===== */
+/* ===== Mic visualizer ===== */
 const micBtn = $('#micBtn'), micStatus = $('#micStatus'), micCanvas = $('#micCanvas');
 const mctx = micCanvas.getContext('2d');
 let micStream, analyser, dataArr, micActive=false;
-
 function micBarColor(){ return `rgba(${getThemeRGB()}, .85)`; }
-
 async function startMic(){
   try{
     micStream = await navigator.mediaDevices.getUserMedia({audio:true});
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    const src = audioCtx.createMediaStreamSource(micStream);
-    src.connect(analyser);
-    dataArr = new Uint8Array(analyser.frequencyBinCount);
-    micActive = true;
-    micStatus.textContent = 'listening…';
-    micBtn.textContent = 'Stop';
-    visualize();
-    log('Mic started');
-  }catch(err){
-    micStatus.textContent = 'permission denied';
-    log('Mic error: ' + err.message);
-  }
+    analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
+    const src = audioCtx.createMediaStreamSource(micStream); src.connect(analyser);
+    dataArr = new Uint8Array(analyser.frequencyBinCount); micActive = true;
+    micStatus.textContent='listening…'; micBtn.textContent='Stop'; visualize(); log('Mic started');
+  }catch(err){ micStatus.textContent='permission denied'; log('Mic error: '+err.message); }
 }
-function stopMic(){
-  micStream?.getTracks().forEach(t=>t.stop());
-  micActive=false; micBtn.textContent = 'Start'; micStatus.textContent='idle';
-  mctx.clearRect(0,0,micCanvas.width,micCanvas.height);
-  log('Mic stopped');
-}
+function stopMic(){ micStream?.getTracks().forEach(t=>t.stop()); micActive=false; micBtn.textContent='Start'; micStatus.textContent='idle'; mctx.clearRect(0,0,micCanvas.width,micCanvas.height); log('Mic stopped'); }
 function visualize(){
   if(!micActive) return;
   analyser.getByteFrequencyData(dataArr);
   mctx.clearRect(0,0,micCanvas.width,micCanvas.height);
-  const w = micCanvas.width, h = micCanvas.height;
-  const barW = w / dataArr.length;
+  const w=micCanvas.width,h=micCanvas.height, barW=w/dataArr.length;
   mctx.fillStyle = micBarColor();
-  for(let i=0;i<dataArr.length;i++){
-    const v = dataArr[i]/255;
-    const bh = v*h;
-    mctx.fillRect(i*barW, h-bh, barW-1, bh);
-  }
+  for(let i=0;i<dataArr.length;i++){ const v=dataArr[i]/255, bh=v*h; mctx.fillRect(i*barW, h-bh, barW-1, bh); }
   requestAnimationFrame(visualize);
 }
 micBtn.addEventListener('click', ()=> micActive ? stopMic() : startMic());
 
-/* ===== Console auto feed ===== */
-const demoLines = [
-  'Initializing protocols…', 'Syncing subsystems…', 'Decrypting telemetry…',
-  'Thermal scan complete.', 'All systems nominal.', 'Monitoring network…'
-];
+/* ===== Demo log ===== */
+const demoLines=['Initializing protocols…','Syncing subsystems…','Decrypting telemetry…','Thermal scan complete.','All systems nominal.','Monitoring network…'];
 let idx=0; setInterval(()=>{ log(demoLines[idx++ % demoLines.length]); }, 2200);
 
-/* ===== Controls (show/hide panel) ===== */
+/* ===== Controls (show/hide) ===== */
 const controlsPanel = document.getElementById('controls-panel');
 const ctrlBtn = document.getElementById('ctrlToggleBtn');
-ctrlBtn.addEventListener('click', toggleControls);
+ctrlBtn.addEventListener('click', ()=>{ toggleControls(); scheduleFit(); });
 function toggleControls(){
   const hidden = controlsPanel.classList.toggle('hidden');
   ctrlBtn.setAttribute('aria-expanded', String(!hidden));
   log(hidden ? 'Controls hidden' : 'Controls shown');
 }
 
-/* ===== Toggles via UI checkboxes ===== */
-$('#tgGrid').addEventListener('change', e => toggleGrid(e.target.checked));
-$('#tgScan').addEventListener('change', e => toggleScan(e.target.checked));
-$('#tgParallax').addEventListener('change', e => toggleParallax(e.target.checked));
-$('#tgStars').addEventListener('change', e => toggleStars(e.target.checked));
+/* ===== UI toggles ===== */
+$('#tgGrid').addEventListener('change', e => { toggleGrid(e.target.checked); scheduleFit(); });
+$('#tgScan').addEventListener('change', e => { toggleScan(e.target.checked); scheduleFit(); });
+$('#tgParallax').addEventListener('change', e => { toggleParallax(e.target.checked); });
+$('#tgStars').addEventListener('change', e => { toggleStars(e.target.checked); });
 
-/* ===== Alert (TERATRON) ===== */
-let alertOn = false;
+function toggleGrid(on){ document.querySelector('.grid').style.display = on ? '' : 'none'; $('#tgGrid').checked = on; }
+function toggleScan(on){ document.querySelector('.scan').style.display = on ? '' : 'none'; $('#tgScan').checked = on; }
+function toggleParallax(on){ parallaxOn = on; if(!on){ coreEl.style.transform = 'translate(-50%, -50%)'; } $('#tgParallax').checked = on; }
+function toggleStars(on){ starOn = on; if(!on){ sctx.clearRect(0,0,stars.width,stars.height); } $('#tgStars').checked = on; }
+
+/* ===== Alert (TERATRON) with flicker‑free fit ===== */
+let alertOn=false;
 const redveil = document.getElementById('redveil');
 const label = document.getElementById('centerLabel');
-
 function setAlert(on){
+  // freeze, swap theme & label, then fit, then unfreeze – avoids flashes
+  document.body.classList.add('nofx');
   alertOn = on;
   document.body.classList.toggle('alert', alertOn);
-  redveil.style.transitionDuration = alertOn ? '3s' : '1.6s';
-  // Update dynamic canvas colors to the new theme
   refreshStarColors();
 
   if(alertOn){
-    label.dataset.text = 'TERATRON';
-    label.innerHTML = 'TERATRON';
+    label.dataset.text='TERATRON';
+    label.innerHTML='TERATRON';
     label.classList.add('glitch');
     log('ALERT mode: TERATRON');
-  } else {
+  }else{
     label.classList.remove('glitch');
-    label.dataset.text = 'ULTRA HD 4K';
-    label.innerHTML = 'ULTRA&nbsp;HD&nbsp;4K';
+    label.dataset.text='ULTRA HD 4K';
+    label.innerHTML='ULTRA&nbsp;HD&nbsp;4K';
     log('ALERT mode off');
   }
+
+  scheduleFit();
+  requestAnimationFrame(()=> document.body.classList.remove('nofx'));
 }
 function toggleAlert(){ setAlert(!alertOn); }
 
-/* ===== Grid / Scan / Parallax / Stars ===== */
-function toggleGrid(on){ document.querySelector('.grid').style.display = on ? '' : 'none'; $('#tgGrid').checked = on; }
-function toggleScan(on){ document.querySelector('.scan').style.display = on ? '' : 'none'; $('#tgScan').checked = on; }
-function toggleParallax(on){ parallaxOn = on; if(!on){ core.style.transform = 'translate(-50%, -50%)'; } $('#tgParallax').checked = on; }
-function toggleStars(on){ starOn = on; if(!on){ sctx.clearRect(0,0,stars.width,stars.height); } $('#tgStars').checked = on; }
-
-/* ===== Radar pause/resume ===== */
+/* ===== Radar & Log ===== */
 const radar = document.getElementById('radar');
-let radarPaused = false;
-function toggleRadar(){
-  radarPaused = !radarPaused;
-  radar.classList.toggle('paused', radarPaused);
-  log(radarPaused ? 'Radar: paused' : 'Radar: running');
-}
+let radarPaused=false;
+function toggleRadar(){ radarPaused=!radarPaused; radar.classList.toggle('paused',radarPaused); log(radarPaused?'Radar: paused':'Radar: running'); }
 
-/* ===== Console log visibility & clear ===== */
 const logWidget = document.getElementById('logWidget');
-function toggleLog(){ logWidget.classList.toggle('hidden'); }
-function clearLog(){ logEl.innerHTML = ''; log('Log cleared'); }
+function toggleLog(){ logWidget.classList.toggle('hidden'); scheduleFit(); }
+function clearLog(){ logEl.innerHTML=''; log('Log cleared'); }
 
 /* ===== Fullscreen ===== */
-function toggleFullscreen(){
-  if (!document.fullscreenElement){
-    document.documentElement.requestFullscreen?.();
-  } else {
-    document.exitFullscreen?.();
-  }
-}
+function toggleFullscreen(){ if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else { document.exitFullscreen?.(); } }
 
 /* ===== Help overlay ===== */
 const help = document.getElementById('help');
 const helpClose = document.getElementById('helpClose');
-helpClose.addEventListener('click', toggleHelp);
-function toggleHelp(){ help.classList.toggle('hidden'); }
+if(helpClose) helpClose.addEventListener('click', ()=> help.classList.toggle('hidden') );
 
-/* ===== Keyboard bindings ===== */
-function isTyping(e){
-  const tag = (e.target?.tagName || '').toLowerCase();
-  const editable = e.target?.isContentEditable;
-  return tag === 'input' || tag === 'textarea' || editable;
-}
+/* ===== Keybinds ===== */
+function isTyping(e){ const tag=(e.target?.tagName||'').toLowerCase(); return tag==='input'||tag==='textarea'||e.target?.isContentEditable; }
 window.addEventListener('keydown', (e)=>{
-  if (isTyping(e)) return;
-
-  const key = e.key.toLowerCase();
-
-  // prevent page scroll for Space and fullscreen key
-  const needsPrevent = [' ', 'spacebar', 'f'];
-  if (needsPrevent.includes(e.key.toLowerCase())) e.preventDefault();
-
-  switch (key){
-    case ' ': case 'a': toggleAlert(); break;        // Space / A
-    case 'c': toggleControls(); break;               // Controls
-    case 'g': toggleGrid(document.querySelector('.grid').style.display === 'none'); break;
-    case 's': toggleScan(document.querySelector('.scan').style.display === 'none'); break;
+  if(isTyping(e)) return;
+  const key=e.key.toLowerCase();
+  if([' ','spacebar','f'].includes(key)) e.preventDefault();
+  switch(key){
+    case ' ': case 'a': toggleAlert(); break;
+    case 'c': toggleControls(); break;
+    case 'g': toggleGrid(document.querySelector('.grid').style.display==='none'); break;
+    case 's': toggleScan(document.querySelector('.scan').style.display==='none'); break;
     case 'p': toggleParallax(!parallaxOn); break;
     case 't': toggleStars(!starOn); break;
     case 'm': micActive ? stopMic() : startMic(); break;
@@ -300,10 +287,11 @@ window.addEventListener('keydown', (e)=>{
     case 'k': clearLog(); break;
     case 'r': toggleRadar(); break;
     case 'f': toggleFullscreen(); break;
-    case 'h': case '?': toggleHelp(); break;
+    case 'h': case '?': help?.classList.toggle('hidden'); break;
     default: return;
   }
 });
 
-/* ===== First log ===== */
-log('HUD online — press H or ? for keybinds');
+/* ===== Go online ===== */
+log('HUD online — fitting to viewport');
+scheduleFit();
