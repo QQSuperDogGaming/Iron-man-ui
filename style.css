@@ -1,47 +1,60 @@
 :root {
   --cy:#00faff; --bg:#05070a; --glass:rgba(0,250,255,.08);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
+
 *{ box-sizing:border-box }
 html,body{ height:100% }
 body{
   margin:0; background:var(--bg); color:var(--cy);
   font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial, sans-serif;
   overflow:hidden;
+  font-size: clamp(12px, 1.8vmin, 16px);
 }
 
-/* Layers */
-#stars{
-  position:fixed; inset:0; z-index:0; display:block;
-}
+/* Layers (full-bleed) */
+#stars, .grid, .scan { position: fixed; inset: 0; }
+#stars { z-index:0; display:block; }
 .grid{
-  position:fixed; inset:0; pointer-events:none; z-index:0;
+  z-index:0; pointer-events:none;
   background:
+    /* major grid */
     linear-gradient(to right, rgba(0,250,255,.28) 1px, transparent 1px) 0 0/200px 100%,
     linear-gradient(to bottom, rgba(0,250,255,.28) 1px, transparent 1px) 0 0/100% 200px,
+    /* minor grid */
     linear-gradient(to right, rgba(0,250,255,.10) 1px, transparent 1px) 0 0/40px 100%,
     linear-gradient(to bottom, rgba(0,250,255,.10) 1px, transparent 1px) 0 0/100% 40px,
     radial-gradient(1200px 800px at 50% 50%, #07242a 0%, #061217 55%, #05070a 100%);
 }
 .scan{
-  position:fixed; inset:0; pointer-events:none; z-index:1;
+  z-index:1; pointer-events:none;
   background: repeating-linear-gradient(
     to bottom, rgba(0,250,255,.05), rgba(0,250,255,.05) 2px, transparent 2px, transparent 6px
   );
-  mix-blend-mode: screen; animation:scan 6s linear infinite;
+  mix-blend-mode: screen; animation: scan 6s linear infinite;
 }
 @keyframes scan { 0%{transform:translateY(-20%)} 100%{transform:translateY(20%)} }
 
-/* HUD */
-.hud{ position:relative; width:100%; height:100%; z-index:2 }
+/* HUD fills *real* viewport (JS sets --vh) */
+.hud{
+  position: fixed; inset: 0;
+  width: 100vw;
+  height: calc(var(--vh, 1vh) * 100);
+  z-index: 2;
+  padding: calc(var(--safe-top) + 0px) calc(var(--safe-right) + 0px)
+           calc(var(--safe-bottom) + 0px) calc(var(--safe-left) + 0px);
+}
 
 /* Core */
 .core{
-  position:absolute; inset:0; margin:auto;
-  width:min(42vmin,420px); height:min(42vmin,420px);
+  position:absolute; left:50%; top:50%;
+  transform: translate(-50%, -50%); /* JS adds rotateX/Y when parallax ON */
+  width:min(58vmin, 520px); height:min(58vmin, 520px);
   display:grid; place-items:center;
   filter: drop-shadow(0 0 12px var(--cy)) drop-shadow(0 0 28px rgba(0,250,255,.25));
-  transform: translate(-50%, -50%); /* parallax JS adds rotateX/Y */
-  left:50%; top:50%;
 }
 .ring{
   position:relative; width:100%; height:100%; border-radius:50%;
@@ -71,7 +84,7 @@ body{
 
 /* Widgets */
 .widget{
-  position:absolute; padding:10px 14px; min-width:190px;
+  position:absolute; padding:10px 14px; min-width: clamp(160px, 26vmin, 260px);
   border:1px solid var(--cy); border-radius:10px;
   background:linear-gradient(180deg, var(--glass), rgba(0,250,255,.03));
   box-shadow:0 0 18px rgba(0,250,255,.35), inset 0 0 18px rgba(0,250,255,.12);
@@ -83,22 +96,23 @@ body{
 .chip{ display:inline-block; padding:.2rem .5rem; border:1px solid var(--cy);
   border-radius:999px; background:rgba(0,250,255,.08); font-size:.8rem }
 
-.w-time{ top:24px; right:24px }
-.w-net{ bottom:24px; left:24px }
-.w-hello{ bottom:24px; right:24px }
-.w-sys{ top:24px; left:24px; min-width:210px }
-.w-radar{ left:50%; transform:translateX(-50%); bottom:24px }
-.w-mic{ right:24px; top:120px; min-width:240px }
-.w-log{ left:24px; bottom:120px; width:320px }
-.w-ctrl{ right:24px; top:24px; min-width:210px }
+/* Edge-aware placement (fits screen) */
+.w-time  { top: 2vh;  right: 2vw; }
+.w-net   { bottom: 2vh; left: 2vw; }
+.w-hello { bottom: 2vh; right: 2vw; }
+.w-sys   { top: 2vh;  left: 2vw; min-width:210px }
+.w-ctrl  { top: 2vh;  right: 2vw; min-width:210px }
+.w-mic   { top: 14vh; right: 2vw; min-width:240px }
+.w-log   { bottom: 14vh; left: 2vw; width: min(80vw, 340px); }
+.w-radar { left: 50%; transform: translateX(-50%); bottom: 2vh }
 
+/* Buttons, bars, log */
 .btn{
   cursor:pointer; padding:.35rem .6rem; border-radius:8px;
   border:1px solid var(--cy); background:rgba(0,250,255,.08); color:var(--cy);
 }
 .btn:hover{ filter:brightness(1.1) }
 
-/* Bars & log */
 .bar{ width:100%; height:8px; border:1px solid var(--cy); border-radius:999px; margin:.4rem 0; }
 .bar > div{ height:100%; background:var(--cy); width:0%; border-radius:999px; box-shadow:0 0 10px var(--cy) }
 
