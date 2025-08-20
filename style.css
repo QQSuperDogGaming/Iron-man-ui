@@ -148,6 +148,7 @@ body{
     conic-gradient(from 0deg, rgba(0,250,255,.45), rgba(0,250,255,.0) 55%);
   animation:rotate 3.6s linear infinite; filter: blur(2px);
 }
+.radar.paused .sweep{ animation-play-state: paused; }
 @keyframes rotate{ to{ transform:rotate(360deg) } }
 .blip{
   position:absolute; width:6px; height:6px; border-radius:50%;
@@ -167,10 +168,7 @@ body{
 }
 
 /* Glitch effect for label */
-.glitch{
-  position: relative;
-  color: currentColor;
-}
+.glitch{ position: relative; color: currentColor; }
 .glitch::before, .glitch::after{
   content: attr(data-text);
   position:absolute; left:0; right:0; text-align:center;
@@ -197,17 +195,32 @@ body{
 }
 
 /* ALERT MODE (turns things red) */
-body.alert{
-  --cy: #ff2b2b;
-  background: #0a0505;
-}
+body.alert{ --cy: #ff2b2b; background: #0a0505; }
 body.alert #redveil{ opacity: 1; }
 body.alert .grid{ filter: hue-rotate(300deg) saturate(1.2); }
 body.alert .disc{
   background: radial-gradient(circle at 50% 50%, rgba(255,43,43,.85), rgba(255,43,43,.25) 60%, transparent 70%);
   border-color: rgba(255,43,43,.8);
 }
-body.alert .label{
-  text-shadow: 0 0 10px #ff2b2b, 0 0 24px rgba(255,43,43,.7);
-}
+body.alert .label{ text-shadow: 0 0 10px #ff2b2b, 0 0 24px rgba(255,43,43,.7); }
+
 .hidden{ display:none !important; }
+
+/* Help overlay */
+.help{
+  position: fixed; inset: 0; z-index: 5; display: grid; place-items: center;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(2px);
+}
+.help-card{
+  width: min(92vw, 560px);
+  border: 1px solid var(--cy);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--glass), rgba(0,250,255,.03));
+  box-shadow: 0 0 24px rgba(0,250,255,.35);
+  color: var(--cy);
+  padding: 16px 18px;
+}
+.help-card h3{ margin: .2rem 0 .6rem; }
+.help-card ul{ margin: 0 0 .8rem 1.2rem; line-height: 1.6; }
+.help-card li{ margin: .1rem 0; }
+.help-card b{ letter-spacing: .02em; }
