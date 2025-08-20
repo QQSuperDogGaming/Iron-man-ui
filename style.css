@@ -1,5 +1,8 @@
-:root {
-  --cy:#00faff; --bg:#05070a; --glass:rgba(0,250,255,.08);
+:root{
+  --cy:#00faff;
+  --bg:#05070a;
+  --glass:rgba(0,250,255,.08);
+
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -13,13 +16,14 @@ body{
   font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial, sans-serif;
   overflow:hidden;
   font-size: clamp(12px, 1.8vmin, 16px);
+  transition: color .6s ease, background-color 1.2s ease;
 }
 
 /* Layers */
 #stars, .grid, .scan { position: fixed; inset: 0; }
 #stars { z-index:0; display:block; }
 .grid{
-  z-index:0; pointer-events:none;
+  z-index:0; pointer-events:none; transition: filter 2s ease;
   background:
     linear-gradient(to right, rgba(0,250,255,.28) 1px, transparent 1px) 0 0/200px 100%,
     linear-gradient(to bottom, rgba(0,250,255,.28) 1px, transparent 1px) 0 0/100% 200px,
@@ -36,7 +40,14 @@ body{
 }
 @keyframes scan { 0%{transform:translateY(-20%)} 100%{transform:translateY(20%)} }
 
-/* HUD */
+/* Red veil for alert mode */
+#redveil{
+  position:fixed; inset:0; pointer-events:none; z-index:3;
+  background: radial-gradient(circle at 50% 50%, rgba(255,0,0,0.0), rgba(255,0,0,0.08));
+  opacity:0; transition: opacity 3s ease;
+}
+
+/* HUD fills real viewport (JS sets --vh) */
 .hud{
   position: fixed; inset: 0;
   width: 100vw;
@@ -53,10 +64,12 @@ body{
   width:min(58vmin, 520px); height:min(58vmin, 520px);
   display:grid; place-items:center;
   filter: drop-shadow(0 0 12px var(--cy)) drop-shadow(0 0 28px rgba(0,250,255,.25));
+  transition: filter 1.5s ease;
 }
 .ring{
   position:relative; width:100%; height:100%; border-radius:50%;
   border:2px solid var(--cy); box-shadow: inset 0 0 40px rgba(0,250,255,.35);
+  transition: border-color 1.2s ease, box-shadow 1.2s ease;
 }
 .ring:before, .ring:after{
   content:""; position:absolute; inset:7%; border-radius:50%;
@@ -69,6 +82,7 @@ body{
   position:absolute; width:45%; height:45%; border-radius:50%;
   background: radial-gradient(circle at 50% 50%, rgba(0,250,255,.85), rgba(0,250,255,.25) 60%, transparent 70%);
   border:2px solid rgba(0,250,255,.8); animation:pulse 2.2s ease-in-out infinite;
+  transition: border-color 1.2s ease, background 1.2s ease;
 }
 .label{
   position:absolute; inset:auto 0 14%;
@@ -77,6 +91,7 @@ body{
   font-weight:900;
   font-size:1.3em;
   text-shadow:0 0 10px var(--cy), 0 0 20px rgba(0,250,255,.6);
+  transition: color 1.2s ease, text-shadow 1.2s ease;
 }
 @keyframes spin{ to{ transform:rotate(360deg) } }
 @keyframes pulse{
@@ -91,6 +106,7 @@ body{
   background:linear-gradient(180deg, var(--glass), rgba(0,250,255,.03));
   box-shadow:0 0 18px rgba(0,250,255,.35), inset 0 0 18px rgba(0,250,255,.12);
   backdrop-filter: blur(3px);
+  transition: border-color 1.2s ease, box-shadow 1.2s ease, color 1.2s ease;
 }
 .widget h4{ margin:.1rem 0 .35rem; font-size:.9rem; opacity:.9 }
 .row{ display:flex; gap:.5rem; align-items:baseline }
@@ -98,7 +114,7 @@ body{
 .chip{ display:inline-block; padding:.2rem .5rem; border:1px solid var(--cy);
   border-radius:999px; background:rgba(0,250,255,.08); font-size:.8rem }
 
-/* Widget layout */
+/* Layout */
 .w-time  { top: 2vh;  right: 2vw; }
 .w-net   { bottom: 2vh; left: 2vw; }
 .w-hello { bottom: 2vh; right: 2vw; }
@@ -110,12 +126,13 @@ body{
 
 /* Buttons, bars, log */
 .btn{ cursor:pointer; padding:.35rem .6rem; border-radius:8px;
-  border:1px solid var(--cy); background:rgba(0,250,255,.08); color:var(--cy);}
+  border:1px solid var(--cy); background:rgba(0,250,255,.08); color:var(--cy);
+  transition: border-color 1.2s ease, color 1.2s ease, background .3s;
+}
 .btn:hover{ filter:brightness(1.1) }
-.bar{ width:100%; height:8px; border:1px solid var(--cy); border-radius:999px; margin:.4rem 0; }
-.bar > div{ height:100%; background:var(--cy); width:0%; border-radius:999px; box-shadow:0 0 10px var(--cy) }
-.log{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size:.82rem; max-height:120px; overflow:auto; border-top:1px solid rgba(0,250,255,.2); padding-top:.4rem; }
+.bar{ width:100%; height:8px; border:1px solid var(--cy); border-radius:999px; margin:.4rem 0; transition: border-color 1.2s ease; }
+.bar > div{ height:100%; background:var(--cy); width:0%; border-radius:999px; box-shadow:0 0 10px var(--cy); transition: background-color 1.2s ease, box-shadow 1.2s ease; }
+.log{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.82rem; max-height:120px; overflow:auto; border-top:1px solid rgba(0,250,255,.2); padding-top:.4rem; }
 
 /* Radar */
 .radar{ position:relative; width:220px; height:220px; border-radius:50%;
@@ -123,16 +140,74 @@ body{
   background:
     radial-gradient(circle at center, rgba(0,250,255,.25) 0 1px, transparent 1px) 0 0/18px 18px,
     radial-gradient(circle at center, rgba(0,250,255,.12) 0 2px, transparent 2px) 0 0/36px 36px,
-    radial-gradient(100px 100px at center, rgba(0,250,255,.08), transparent 70%);}
-.radar .sweep{ position:absolute; inset:-10% -10%; background:
+    radial-gradient(100px 100px at center, rgba(0,250,255,.08), transparent 70%);
+  transition: border-color 1.2s ease;
+}
+.radar .sweep{
+  position:absolute; inset:-10% -10%; background:
     conic-gradient(from 0deg, rgba(0,250,255,.45), rgba(0,250,255,.0) 55%);
-  animation:rotate 3.6s linear infinite; filter: blur(2px);}
+  animation:rotate 3.6s linear infinite; filter: blur(2px);
+}
 @keyframes rotate{ to{ transform:rotate(360deg) } }
-.blip{ position:absolute; width:6px; height:6px; border-radius:50%;
+.blip{
+  position:absolute; width:6px; height:6px; border-radius:50%;
   background:var(--cy); left:var(--x); top:var(--y); box-shadow:0 0 10px var(--cy);
-  animation: blink 1.6s ease-in-out infinite;}
+  animation: blink 1.6s ease-in-out infinite; transition: background-color 1.2s ease, box-shadow 1.2s ease;
+}
 @keyframes blink{ 50%{ opacity:.2 } }
 
-/* Toggles */
-.toggles{ display:grid; gap:.3rem }
-.toggles label{ display:flex; gap:.4rem; align-items:center; font-size:.9rem }
+/* Controls toggle FAB */
+.ctrl-fab{
+  position:fixed; top: 1.2vh; left: 1.2vw; z-index: 4;
+  width: 40px; height: 40px; border-radius: 10px;
+  border:1px solid var(--cy); background: rgba(0,250,255,.08); color: var(--cy);
+  display:grid; place-items:center; cursor:pointer;
+  box-shadow: 0 0 12px rgba(0,250,255,.35);
+  transition: border-color 1.2s, color 1.2s, background .3s, box-shadow 1.2s;
+}
+
+/* Glitch effect for label */
+.glitch{
+  position: relative;
+  color: currentColor;
+}
+.glitch::before, .glitch::after{
+  content: attr(data-text);
+  position:absolute; left:0; right:0; text-align:center;
+  clip-path: inset(0 0 0 0);
+  opacity:.8;
+}
+.glitch::before{ transform: translate(-2px, 0); text-shadow: -2px 0 #f00; animation: glitch-1 1.8s infinite linear alternate-reverse; }
+.glitch::after { transform: translate(2px, 0);  text-shadow:  2px 0 #fff; animation: glitch-2 2.1s infinite linear alternate-reverse; }
+
+@keyframes glitch-1{
+  0%{ clip-path: inset(10% 0 70% 0) }
+  20%{ clip-path: inset(40% 0 35% 0) }
+  40%{ clip-path: inset(20% 0 55% 0) }
+  60%{ clip-path: inset(65% 0 10% 0) }
+  80%{ clip-path: inset(30% 0 40% 0) }
+  100%{ clip-path: inset(5% 0 80% 0) }
+}
+@keyframes glitch-2{
+  0%{ clip-path: inset(60% 0 15% 0) }
+  25%{ clip-path: inset(25% 0 50% 0) }
+  50%{ clip-path: inset(70% 0 5% 0) }
+  75%{ clip-path: inset(15% 0 65% 0) }
+  100%{ clip-path: inset(50% 0 25% 0) }
+}
+
+/* ALERT MODE (turns things red) */
+body.alert{
+  --cy: #ff2b2b;
+  background: #0a0505;
+}
+body.alert #redveil{ opacity: 1; }
+body.alert .grid{ filter: hue-rotate(300deg) saturate(1.2); }
+body.alert .disc{
+  background: radial-gradient(circle at 50% 50%, rgba(255,43,43,.85), rgba(255,43,43,.25) 60%, transparent 70%);
+  border-color: rgba(255,43,43,.8);
+}
+body.alert .label{
+  text-shadow: 0 0 10px #ff2b2b, 0 0 24px rgba(255,43,43,.7);
+}
+.hidden{ display:none !important; }
