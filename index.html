@@ -11,13 +11,20 @@
   <canvas id="stars" aria-hidden="true"></canvas>
   <div class="grid"></div>
   <div class="scan"></div>
+  <!-- red fade overlay for alert mode -->
+  <div id="redveil" aria-hidden="true"></div>
+
+  <!-- global controls toggle button -->
+  <button id="ctrlToggleBtn" class="ctrl-fab" aria-controls="controls-panel" aria-expanded="true" title="Show/Hide Controls">
+    ☰
+  </button>
 
   <main class="hud">
     <!-- Core -->
     <section class="core" aria-label="Ultra HD 4K core">
       <div class="ring"></div>
       <div class="disc"></div>
-      <div class="label">ULTRA&nbsp;HD&nbsp;4K</div>
+      <div id="centerLabel" class="label" data-text="ULTRA HD 4K">ULTRA&nbsp;HD&nbsp;4K</div>
     </section>
 
     <!-- Time -->
@@ -72,7 +79,7 @@
     </aside>
 
     <!-- Controls -->
-    <aside class="widget w-ctrl">
+    <aside id="controls-panel" class="widget w-ctrl">
       <h4>Controls</h4>
       <div class="toggles">
         <label><input type="checkbox" id="tgGrid" checked> Grid</label>
