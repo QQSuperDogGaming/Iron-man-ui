@@ -15,7 +15,7 @@
 *{ box-sizing:border-box }
 html,body{ height:100% }
 body{
-  margin:0; background:var(--bg); color:var(--cy);
+  margin:0; background:var(--bg); color:#fff;   /* 🔹 default text = white */
   font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial, sans-serif;
   overflow:hidden;
   font-size: clamp(12px, 1.8vmin, 16px);
@@ -97,6 +97,7 @@ body{
   letter-spacing:.25em;
   font-weight:900;
   font-size:1.3em;
+  color:#fff;                                    /* 🔹 force label text white */
   text-shadow:0 0 10px var(--cy), 0 0 20px rgba(var(--cy-rgb), .6);
   transition: color 1.2s ease, text-shadow 1.2s ease;
 }
@@ -113,30 +114,28 @@ body{
   background:linear-gradient(180deg, var(--glass), rgba(var(--cy-rgb), .03));
   box-shadow:0 0 18px rgba(var(--cy-rgb), .35), inset 0 0 18px rgba(var(--cy-rgb), .12);
   backdrop-filter: blur(3px);
+  color:#fff;                                   /* 🔹 widget body text white */
   transition: border-color 1.2s ease, box-shadow 1.2s ease, color 1.2s ease;
 }
-.widget h4{ margin:.1rem 0 .35rem; font-size:.9rem; opacity:.9 }
+.widget h4{ 
+  margin:.1rem 0 .35rem; 
+  font-size:.9rem; 
+  color: var(--cy);                             /* 🔹 headings keep theme color */
+  opacity:.9 
+}
 .row{ display:flex; gap:.5rem; align-items:baseline }
-.muted{ opacity:.7; font-size:.85rem }
+.muted{ opacity:.7; font-size:.85rem; color:#fff }  /* 🔹 muted text still white */
 .chip{
   display:inline-block; padding:.2rem .5rem; border:1px solid var(--cy);
-  border-radius:999px; background:rgba(var(--cy-rgb), .08); font-size:.8rem
+  border-radius:999px; background:rgba(var(--cy-rgb), .08); font-size:.8rem;
+  color:#fff;                                   /* 🔹 chip text white */
 }
-
-/* Layout */
-.w-time  { top: 2vh;  right: 2vw; }
-.w-net   { bottom: 2vh; left: 2vw; }
-.w-hello { bottom: 2vh; right: 2vw; }
-.w-sys   { top: 2vh;  left: 2vw; min-width:210px }
-.w-ctrl  { top: 2vh;  right: 2vw; min-width:210px }
-.w-mic   { top: 14vh; right: 2vw; min-width:240px }
-.w-log   { bottom: 14vh; left: 2vw; width: min(80vw, 340px); }
-.w-radar { left: 50%; transform: translateX(-50%); bottom: 2vh }
 
 /* Buttons, bars, log */
 .btn{
   cursor:pointer; padding:.35rem .6rem; border-radius:8px;
-  border:1px solid var(--cy); background:rgba(var(--cy-rgb), .08); color:var(--cy);
+  border:1px solid var(--cy); background:rgba(var(--cy-rgb), .08); 
+  color:#fff;                                   /* 🔹 button text white */
   transition: border-color 1.2s ease, color 1.2s ease, background .3s;
 }
 .btn:hover{ filter:brightness(1.1) }
@@ -149,6 +148,7 @@ body{
 .log{
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size:.82rem; max-height:120px; overflow:auto; border-top:1px solid rgba(var(--cy-rgb), .2); padding-top:.4rem;
+  color:#fff;                                   /* 🔹 console text white */
 }
 
 /* Radar */
@@ -161,91 +161,40 @@ body{
     radial-gradient(100px 100px at center, rgba(var(--cy-rgb), .08), transparent 70%);
   transition: border-color 1.2s ease;
 }
-.radar .sweep{
-  position:absolute; inset:-10% -10%;
-  background: conic-gradient(from 0deg, rgba(var(--cy-rgb), .45), rgba(var(--cy-rgb), 0) 55%);
-  animation:rotate 3.6s linear infinite; filter: blur(2px);
-}
-.radar.paused .sweep{ animation-play-state: paused; }
-@keyframes rotate{ to{ transform:rotate(360deg) } }
-.blip{
-  position:absolute; width:6px; height:6px; border-radius:50%;
-  background:var(--cy); left:var(--x); top:var(--y); box-shadow:0 0 10px var(--cy);
-  animation: blink 1.6s ease-in-out infinite; transition: background-color 1.2s ease, box-shadow 1.2s ease;
-}
-@keyframes blink{ 50%{ opacity:.2 } }
 
-/* Controls toggle FAB */
-.ctrl-fab{
-  position:fixed; top: 1.2vh; left: 1.2vw; z-index: 4;
-  width: 40px; height: 40px; border-radius: 10px;
-  border:1px solid var(--cy); background: rgba(var(--cy-rgb), .08); color: var(--cy);
-  display:grid; place-items:center; cursor:pointer;
-  box-shadow: 0 0 12px rgba(var(--cy-rgb), .35);
-  transition: border-color 1.2s, color 1.2s, background .3s, box-shadow 1.2s;
-}
-
-/* Glitch effect for label */
-.glitch{ position: relative; color: currentColor; }
-.glitch::before, .glitch::after{
+/* Glitch readability fix */
+.glitch{ position: relative; color:#fff; }      /* 🔹 glitch text white */
+.glitch::before{
   content: attr(data-text);
   position:absolute; left:0; right:0; text-align:center;
-  clip-path: inset(0 0 0 0);
-  opacity:.8;
-}
-/* Readability-friendly streak colors */
-.glitch::before{
   transform: translate(-2px, 0);
   text-shadow: -2px 0 #ff7043; /* orange-red */
+  clip-path: inset(0 0 0 0); opacity:.8;
   animation: glitch-1 1.8s infinite linear alternate-reverse;
 }
 .glitch::after{
+  content: attr(data-text);
+  position:absolute; left:0; right:0; text-align:center;
   transform: translate(2px, 0);
-  text-shadow: 2px 0 #ef5350;  /* lighter red */
+  text-shadow: 2px 0 #ef5350; /* lighter red */
+  clip-path: inset(0 0 0 0); opacity:.8;
   animation: glitch-2 2.1s infinite linear alternate-reverse;
 }
 
-@keyframes glitch-1{
-  0%{ clip-path: inset(10% 0 70% 0) }
-  20%{ clip-path: inset(40% 0 35% 0) }
-  40%{ clip-path: inset(20% 0 55% 0) }
-  60%{ clip-path: inset(65% 0 10% 0) }
-  80%{ clip-path: inset(30% 0 40% 0) }
-  100%{ clip-path: inset(5% 0 80% 0) }
-}
-@keyframes glitch-2{
-  0%{ clip-path: inset(60% 0 15% 0) }
-  25%{ clip-path: inset(25% 0 50% 0) }
-  50%{ clip-path: inset(70% 0 5% 0) }
-  75%{ clip-path: inset(15% 0 65% 0) }
-  100%{ clip-path: inset(50% 0 25% 0) }
-}
-
-/* ALERT MODE — switch theme variables to a deeper red for readability */
+/* ALERT MODE — deeper red */
 body.alert{
-  --cy: #e53935;             /* deeper, easier red */
+  --cy: #e53935;
   --cy-rgb: 229, 57, 53;
   background: #0a0505;
 }
 body.alert #redveil{ opacity: 1; }
 
-.hidden{ display:none !important; }
-
 /* Help overlay */
-.help{
-  position: fixed; inset: 0; z-index: 5; display: grid; place-items: center;
-  background: rgba(0,0,0,.6); backdrop-filter: blur(2px);
-}
 .help-card{
-  width: min(92vw, 560px);
   border: 1px solid var(--cy);
-  border-radius: 12px;
   background: linear-gradient(180deg, var(--glass), rgba(var(--cy-rgb), .03));
   box-shadow: 0 0 24px rgba(var(--cy-rgb), .35);
-  color: var(--cy);
-  padding: 16px 18px;
+  color:#fff;                                   /* 🔹 help text white */
 }
-.help-card h3{ margin: .2rem 0 .6rem; }
-.help-card ul{ margin: 0 0 .8rem 1.2rem; line-height: 1.6; }
-.help-card li{ margin: .1rem 0; }
-.help-card b{ letter-spacing: .02em; }
+.help-card h3{ color: var(--cy); }              /* 🔹 help heading themed */
+.help-card b{ color:#fff; }
