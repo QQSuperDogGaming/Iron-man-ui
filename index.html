@@ -1,30 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>J.A.R.V.I.S. UI</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="grid-overlay"></div>
+  <div class="grid"></div>
+  <div class="scan"></div>
 
-  <!-- Core Circle -->
-  <div class="jarvis-core">
-    <div class="inner-circle"></div>
-    <span>J.A.R.V.I.S</span>
-  </div>
+  <main class="hud">
+    <!-- Core -->
+    <section class="core">
+      <div class="ring"></div>
+      <div class="disc"></div>
+      <div class="label">J.A.R.V.I.S</div>
+    </section>
 
-  <!-- Time -->
-  <div class="widget time-widget">
-    <p id="time"></p>
-  </div>
+    <!-- Time -->
+    <aside class="widget w-time">
+      <h4>Time</h4>
+      <div class="row">
+        <span id="clock">--:--:--</span>
+      </div>
+      <div class="muted" id="dateLine">— —</div>
+    </aside>
 
-  <!-- Network Speed -->
-  <div class="widget net-widget">
-    <p>Network Speed</p>
-    <p id="net-speed">...</p>
-  </div>
+    <!-- Network -->
+    <aside class="widget w-net">
+      <h4>Network</h4>
+      <div class="row"><span class="muted">Down:</span><strong id="down">--.-</strong><span class="muted">Mbps</span></div>
+      <div class="row"><span class="muted">Up:</span><strong id="up">--.-</strong><span class="muted">Mbps</span></div>
+      <div class="row"><span class="chip" id="netState">checking…</span></div>
+    </aside>
+
+    <!-- Hello widget -->
+    <aside class="widget w-hello">
+      <h4>Status</h4>
+      <div class="muted">Hello, boss.</div>
+    </aside>
+  </main>
 
   <script src="script.js"></script>
 </body>
