@@ -1,3 +1,7 @@
+/* =========================
+   HUD SCRIPT — FULL FILE
+   ========================= */
+
 /* ===== Real viewport height (mobile 100vh fix) ===== */
 function setRealVh(){
   const vh = window.innerHeight * 0.01;
@@ -7,22 +11,28 @@ setRealVh();
 window.addEventListener('resize', setRealVh, {passive:true});
 window.addEventListener('orientationchange', setRealVh);
 
-/* ===== Debounced auto‑FIT (center stable) ===== */
+/* ===== Debounced auto‑FIT (center stable, no flashes) ===== */
 let fitRaf = 0;
 function scheduleFit(){ if (fitRaf) cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(autoFit); }
+
 function autoFit(){
   const root = document.querySelector('.hud');
   if(!root) return;
 
+  // Freeze transitions/animations to prevent flicker while measuring
   document.body.classList.add('nofx');
+
+  // Temporarily disable parallax & reset transform so core is exactly centered
   const core = document.querySelector('.core');
   const prevParallax = parallaxOn;
   const prevTransform = core.style.transform;
   parallaxOn = false;
   core.style.transform = 'translate(-50%, -50%)';
 
+  // Reset scale before measuring
   document.documentElement.style.setProperty('--fit', '1');
 
+  // Measure all visible HUD pieces
   const nodes = [...root.querySelectorAll('.core, .widget:not(.hidden)')];
   let minL=Infinity,minT=Infinity,maxR=-Infinity,maxB=-Infinity;
   nodes.forEach(n=>{
@@ -30,14 +40,20 @@ function autoFit(){
     minL=Math.min(minL,r.left); minT=Math.min(minT,r.top);
     maxR=Math.max(maxR,r.right); maxB=Math.max(maxB,r.bottom);
   });
-  const boundsW=Math.max(1,maxR-minL), boundsH=Math.max(1,maxB-minT);
+
+  const boundsW=Math.max(1,maxR-minL);
+  const boundsH=Math.max(1,maxB-minT);
   const vw=innerWidth, vh=innerHeight, margin=16;
   const s=Math.min(1,(vw-margin*2)/boundsW,(vh-margin*2)/boundsH);
   document.documentElement.style.setProperty('--fit', String(s));
 
+  // Restore parallax state
   if(prevParallax){ parallaxOn=true; core.style.transform = prevTransform || 'translate(-50%, -50%)'; }
+
+  // Unfreeze next frame
   requestAnimationFrame(()=> document.body.classList.remove('nofx'));
 }
+
 window.addEventListener('load', scheduleFit);
 window.addEventListener('resize', scheduleFit, {passive:true});
 window.addEventListener('orientationchange', scheduleFit);
@@ -52,6 +68,8 @@ function log(line){
   logEl.appendChild(p);
   logEl.scrollTop = logEl.scrollHeight;
 }
+
+/* Read current theme color for canvases */
 function getThemeRGB(){
   const v = getComputedStyle(document.documentElement).getPropertyValue('--cy-rgb').trim();
   return v || '0, 250, 255';
@@ -62,11 +80,13 @@ function pad(n){ return n.toString().padStart(2,'0'); }
 function tick(){
   const d = new Date();
   $('#clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  $('#dateLine').textContent = d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'2-digit', year:'numeric'});
+  $('#dateLine').textContent = d.toLocaleDateString(undefined,{
+    weekday:'short', month:'short', day:'2-digit', year:'numeric'
+  });
 }
 tick(); setInterval(tick, 1000);
 
-/* ===== Network ===== */
+/* ===== Network (fake throughput) + real latency ===== */
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function updateNet(){
   $('#down').textContent = rand(45,180).toFixed(1);
@@ -92,32 +112,55 @@ ping(); setInterval(ping, 3000);
 const batPct=$('#batPct'), batBar=$('#batBar'), batState=$('#batState');
 if('getBattery' in navigator){
   navigator.getBattery().then(b=>{
-    function upd(){ const pct=Math.round(b.level*100); batPct.textContent=pct+'%'; batBar.style.width=pct+'%'; batState.textContent=b.charging?'(charging)':''; }
-    b.addEventListener('levelchange',upd); b.addEventListener('chargingchange',upd); upd();
+    function upd(){
+      const pct=Math.round(b.level*100);
+      batPct.textContent=pct+'%';
+      batBar.style.width=pct+'%';
+      batState.textContent=b.charging?'(charging)':'';
+    }
+    b.addEventListener('levelchange',upd);
+    b.addEventListener('chargingchange',upd);
+    upd();
   }).catch(()=> batPct.textContent='n/a');
 }else{ batPct.textContent='n/a'; }
 
 let fps=0,frames=0,last=performance.now();
-function raf(ts){ frames++; if(ts-last>=1000){ fps=frames; frames=0; last=ts; $('#fps').textContent=fps; } requestAnimationFrame(raf); }
+function raf(ts){
+  frames++;
+  if(ts-last>=1000){ fps=frames; frames=0; last=ts; $('#fps').textContent=fps; }
+  requestAnimationFrame(raf);
+}
 requestAnimationFrame(raf);
 
-/* ===== Parallax ===== */
+/* ===== Parallax on core (toggleable) ===== */
 let parallaxOn = true;
 const coreEl = document.querySelector('.core');
 window.addEventListener('mousemove', e=>{
   if(!parallaxOn) return;
-  const x=(e.clientX/innerWidth - .5)*10, y=(e.clientY/innerHeight - .5)*-10;
+  const x=(e.clientX/innerWidth - .5)*10;
+  const y=(e.clientY/innerHeight - .5)*-10;
   coreEl.style.transform = `translate(-50%, -50%) rotateX(${y}deg) rotateY(${x}deg)`;
 },{passive:true});
 
-/* ===== Stars ===== */
-const stars=document.getElementById('stars'); const sctx=stars.getContext('2d'); let starOn=true;
+/* ===== Stars particle field ===== */
+const stars=document.getElementById('stars');
+const sctx=stars.getContext('2d');
+let starOn=true;
 function resizeStars(){ stars.width=innerWidth; stars.height=innerHeight; }
-window.addEventListener('resize', resizeStars, {passive:true}); resizeStars();
+window.addEventListener('resize', resizeStars, {passive:true});
+resizeStars();
+
 const STAR_COUNT=160;
-const pts=Array.from({length:STAR_COUNT},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,v:0.2+Math.random()*0.6,r:Math.random()*1.4+0.4}));
+const pts=Array.from({length:STAR_COUNT},()=>({
+  x:Math.random()*innerWidth,
+  y:Math.random()*innerHeight,
+  v:0.2+Math.random()*0.6,
+  r:Math.random()*1.4+0.4
+}));
+
 let starFill=`rgba(${getThemeRGB()}, .7)`, starGlow=`rgba(${getThemeRGB()}, .9)`;
 function refreshStarColors(){ starFill=`rgba(${getThemeRGB()}, .7)`; starGlow=`rgba(${getThemeRGB()}, .9)`; }
+
 function drawStars(){
   if(!starOn){ sctx.clearRect(0,0,stars.width,stars.height); return requestAnimationFrame(drawStars); }
   sctx.clearRect(0,0,stars.width,stars.height);
@@ -131,9 +174,12 @@ function drawStars(){
 drawStars();
 
 /* ===== Mic visualizer ===== */
-const micBtn=$('#micBtn'), micStatus=$('#micStatus'), micCanvas=$('#micCanvas'); const mctx=micCanvas.getContext('2d');
+const micBtn=$('#micBtn'), micStatus=$('#micStatus'), micCanvas=$('#micCanvas');
+const mctx=micCanvas?.getContext?.('2d');
 let micStream, analyser, dataArr, micActive=false;
+
 function micBarColor(){ return `rgba(${getThemeRGB()}, .85)`; }
+
 async function startMic(){
   try{
     micStream = await navigator.mediaDevices.getUserMedia({audio:true});
@@ -141,93 +187,74 @@ async function startMic(){
     analyser=audioCtx.createAnalyser(); analyser.fftSize=256;
     audioCtx.createMediaStreamSource(micStream).connect(analyser);
     dataArr=new Uint8Array(analyser.frequencyBinCount); micActive=true;
-    micStatus.textContent='listening…'; micBtn.textContent='Stop'; visualize(); log('Mic started');
-  }catch(err){ micStatus.textContent='permission denied'; log('Mic error: '+err.message); }
+    if(micStatus) micStatus.textContent='listening…';
+    if(micBtn) micBtn.textContent='Stop';
+    visualize();
+    log('Mic started');
+  }catch(err){
+    if(micStatus) micStatus.textContent='permission denied';
+    log('Mic error: '+err.message);
+  }
 }
-function stopMic(){ micStream?.getTracks().forEach(t=>t.stop()); micActive=false; micBtn.textContent='Start'; micStatus.textContent='idle'; mctx.clearRect(0,0,micCanvas.width,micCanvas.height); log('Mic stopped'); }
+function stopMic(){
+  micStream?.getTracks().forEach(t=>t.stop());
+  micActive=false;
+  if(micBtn) micBtn.textContent='Start';
+  if(micStatus) micStatus.textContent='idle';
+  mctx?.clearRect(0,0,micCanvas.width,micCanvas.height);
+  log('Mic stopped');
+}
 function visualize(){
-  if(!micActive) return;
+  if(!micActive || !mctx) return;
   analyser.getByteFrequencyData(dataArr);
   mctx.clearRect(0,0,micCanvas.width,micCanvas.height);
   const w=micCanvas.width,h=micCanvas.height, barW=w/dataArr.length;
   mctx.fillStyle=micBarColor();
-  for(let i=0;i<dataArr.length;i++){ const v=dataArr[i]/255, bh=v*h; mctx.fillRect(i*barW, h-bh, barW-1, bh); }
+  for(let i=0;i<dataArr.length;i++){
+    const v=dataArr[i]/255, bh=v*h;
+    mctx.fillRect(i*barW, h-bh, barW-1, bh);
+  }
   requestAnimationFrame(visualize);
 }
-micBtn.addEventListener('click', ()=> micActive ? stopMic() : startMic());
+micBtn?.addEventListener('click', ()=> micActive ? stopMic() : startMic());
 
-/* ===== Demo log ===== */
+/* ===== Demo log feed ===== */
 const demoLines=['Initializing protocols…','Syncing subsystems…','Decrypting telemetry…','Thermal scan complete.','All systems nominal.','Monitoring network…'];
 let idx=0; setInterval(()=>{ log(demoLines[idx++ % demoLines.length]); }, 2200);
 
 /* ===== Controls (show/hide) ===== */
 const controlsPanel = document.getElementById('controls-panel');
 const ctrlBtn = document.getElementById('ctrlToggleBtn');
-ctrlBtn.addEventListener('click', ()=>{ toggleControls(); scheduleFit(); });
+ctrlBtn?.addEventListener('click', ()=>{ toggleControls(); scheduleFit(); });
 function toggleControls(){
+  if(!controlsPanel || !ctrlBtn) return;
   const hidden = controlsPanel.classList.toggle('hidden');
   ctrlBtn.setAttribute('aria-expanded', String(!hidden));
   log(hidden ? 'Controls hidden' : 'Controls shown');
 }
 
 /* ===== UI toggles ===== */
-$('#tgGrid').addEventListener('change', e => { toggleGrid(e.target.checked); scheduleFit(); });
-$('#tgScan').addEventListener('change', e => { toggleScan(e.target.checked); scheduleFit(); });
-$('#tgParallax').addEventListener('change', e => { toggleParallax(e.target.checked); });
-$('#tgStars').addEventListener('change', e => { toggleStars(e.target.checked); });
+const gridEl = document.querySelector('.grid');
+const scanEl = document.querySelector('.scan');
 
-function toggleGrid(on){ document.querySelector('.grid').style.display = on ? '' : 'none'; $('#tgGrid').checked = on; }
-function toggleScan(on){ document.querySelector('.scan').style.display = on ? '' : 'none'; $('#tgScan').checked = on; }
-function toggleParallax(on){ parallaxOn = on; if(!on){ coreEl.style.transform = 'translate(-50%, -50%)'; } $('#tgParallax').checked = on; }
-function toggleStars(on){ starOn = on; if(!on){ sctx.clearRect(0,0,stars.width,stars.height); } $('#tgStars').checked = on; }
+$('#tgGrid')?.addEventListener('change', e => { toggleGrid(e.target.checked); scheduleFit(); });
+$('#tgScan')?.addEventListener('change', e => { toggleScan(e.target.checked); scheduleFit(); });
+$('#tgParallax')?.addEventListener('change', e => { toggleParallax(e.target.checked); });
+$('#tgStars')?.addEventListener('change', e => { toggleStars(e.target.checked); });
 
-/* ===== Morphing Alert (cyan <-> red) ===== */
-let alertOn=false;
-const label = document.getElementById('centerLabel');
-const morphTargets = [document.getElementById('stars'), document.querySelector('.grid'), document.querySelector('.scan'), document.querySelector('.hud')];
-morphTargets.forEach(el => el?.classList.add('morph-target'));
-
-const MORPH_MS = 950;
-
-function setAlert(on){
-  if(on === alertOn) return;
-
-  // 1) start morph
-  document.body.classList.remove('morphing-to-cyan','morphing-to-red');
-  document.body.classList.add(on ? 'morphing-to-red' : 'morphing-to-cyan');
-
-  // 2) update label text immediately so it morphs with everything
-  if(on){
-    label.dataset.text='TERATRON';
-    label.innerHTML='TERATRON';
-    label.classList.add('glitch');
-    log('ALERT morph → TERATRON');
-  }else{
-    label.classList.remove('glitch');
-    label.dataset.text='ULTRA HD 4K';
-    label.innerHTML='ULTRA&nbsp;HD&nbsp;4K';
-    log('ALERT morph → ULTRA HD 4K');
-  }
-
-  // 3) after morph completes, flip the theme variables and clear the hue-rotate
-  setTimeout(()=>{
-    alertOn = on;
-    document.body.classList.toggle('alert', alertOn);
-    refreshStarColors();          // update canvas colors to new theme
-    document.body.classList.remove('morphing-to-cyan','morphing-to-red');
-    scheduleFit();                // keep perfect centering after label swap
-  }, MORPH_MS);
-}
-function toggleAlert(){ setAlert(!alertOn); }
+function toggleGrid(on){ if(gridEl){ gridEl.style.display = on ? '' : 'none'; } const cb=$('#tgGrid'); if(cb) cb.checked=on; }
+function toggleScan(on){ if(scanEl){ scanEl.style.display = on ? '' : 'none'; } const cb=$('#tgScan'); if(cb) cb.checked=on; }
+function toggleParallax(on){ parallaxOn = on; if(!on){ coreEl.style.transform='translate(-50%, -50%)'; } const cb=$('#tgParallax'); if(cb) cb.checked=on; }
+function toggleStars(on){ starOn = on; if(!on){ sctx.clearRect(0,0,stars.width,stars.height); } const cb=$('#tgStars'); if(cb) cb.checked=on; }
 
 /* ===== Radar & Log ===== */
 const radar = document.getElementById('radar');
 let radarPaused=false;
-function toggleRadar(){ radarPaused=!radarPaused; radar.classList.toggle('paused',radarPaused); log(radarPaused?'Radar: paused':'Radar: running'); }
+function toggleRadar(){ radarPaused=!radarPaused; radar?.classList.toggle('paused',radarPaused); log(radarPaused?'Radar: paused':'Radar: running'); }
 
 const logWidget = document.getElementById('logWidget');
-function toggleLog(){ logWidget.classList.toggle('hidden'); scheduleFit(); }
-function clearLog(){ logEl.innerHTML=''; log('Log cleared'); }
+function toggleLog(){ logWidget?.classList.toggle('hidden'); scheduleFit(); }
+function clearLog(){ if(logEl){ logEl.innerHTML=''; log('Log cleared'); } }
 
 /* ===== Fullscreen ===== */
 function toggleFullscreen(){ if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else { document.exitFullscreen?.(); } }
@@ -235,19 +262,62 @@ function toggleFullscreen(){ if(!document.fullscreenElement){ document.documentE
 /* ===== Help overlay ===== */
 const help = document.getElementById('help');
 const helpClose = document.getElementById('helpClose');
-helpClose?.addEventListener('click', ()=> help.classList.toggle('hidden') );
+helpClose?.addEventListener('click', ()=> help?.classList.toggle('hidden') );
 
-/* ===== Keybinds ===== */
-function isTyping(e){ const tag=(e.target?.tagName||'').toLowerCase(); return tag==='input'||tag==='textarea'||e.target?.isContentEditable; }
+/* ===== Morphing (Direct cyan <-> red with glitch overlay) ===== */
+/* No hue-rotate: theme variables transition directly, avoiding unwanted colors */
+let alertOn = false;
+const label = document.getElementById('centerLabel');
+const MORPH_MS = 900;
+
+function setAlert(on){
+  if(on === alertOn) return;
+  alertOn = on;
+
+  // Screen glitch overlay while morphing
+  const overlay = document.createElement('div');
+  overlay.className = 'screen-glitch';
+  document.body.appendChild(overlay);
+
+  // Swap center label immediately so it fades with theme
+  if(on){
+    label.dataset.text='TERATRON';
+    label.innerHTML='TERATRON';
+    label.classList.add('glitch');
+    log('Morphing → TERATRON');
+  } else {
+    label.classList.remove('glitch');
+    label.dataset.text='ULTRA HD 4K';
+    label.innerHTML='ULTRA&nbsp;HD&nbsp;4K';
+    log('Morphing → ULTRA HD 4K');
+  }
+
+  // Flip theme variables (CSS transitions handle the morph)
+  document.body.classList.toggle('alert', alertOn);
+
+  // After morph finishes: remove overlay, update canvas colors, refit for any width change
+  setTimeout(()=>{
+    overlay.remove();
+    refreshStarColors();
+    scheduleFit();
+  }, MORPH_MS);
+}
+function toggleAlert(){ setAlert(!alertOn); }
+
+/* ===== Keyboard bindings ===== */
+function isTyping(e){
+  const tag=(e.target?.tagName||'').toLowerCase();
+  return tag==='input'||tag==='textarea'||e.target?.isContentEditable;
+}
 window.addEventListener('keydown', (e)=>{
   if (isTyping(e)) return;
   const key=e.key.toLowerCase();
   if([' ','spacebar','f'].includes(key)) e.preventDefault();
   switch(key){
-    case ' ': case 'a': toggleAlert(); break;
-    case 'c': toggleControls(); break;
-    case 'g': toggleGrid(document.querySelector('.grid').style.display==='none'); break;
-    case 's': toggleScan(document.querySelector('.scan').style.display==='none'); break;
+    case ' ': case 'a': toggleAlert(); break;                           // Alert morph
+    case 'c': toggleControls(); scheduleFit(); break;                   // Controls panel
+    case 'g': toggleGrid(gridEl?.style.display==='none'); scheduleFit(); break;
+    case 's': toggleScan(scanEl?.style.display==='none'); scheduleFit(); break;
     case 'p': toggleParallax(!parallaxOn); break;
     case 't': toggleStars(!starOn); break;
     case 'm': micActive ? stopMic() : startMic(); break;
