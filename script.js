@@ -1,34 +1,177 @@
-// ===== Time & date =====
+/* ===== Utilities ===== */
+const $ = (sel) => document.querySelector(sel);
+const logEl = $('#log');
+function log(line){
+  const p = document.createElement('div');
+  p.textContent = `[${new Date().toLocaleTimeString()}] ${line}`;
+  logEl.appendChild(p);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+/* ===== Time & date ===== */
 function pad(n){ return n.toString().padStart(2,'0'); }
 function tick(){
   const d = new Date();
   const t = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  document.getElementById('clock').textContent = t;
-  document.getElementById('dateLine').textContent =
-    d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'2-digit', year:'numeric' });
+  $('#clock').textContent = t;
+  $('#dateLine').textContent = d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'2-digit',year:'numeric'});
 }
-tick();
-setInterval(tick, 1000);
+tick(); setInterval(tick, 1000);
 
-// ===== Fake network telemetry =====
+/* ===== Fake network throughput + real latency ===== */
 function rand(min,max){ return Math.random()*(max-min)+min; }
 function updateNet(){
-  document.getElementById('down').textContent = rand(45, 180).toFixed(1);
-  document.getElementById('up').textContent   = rand(10, 35).toFixed(1);
-
-  const state = document.getElementById('netState');
+  $('#down').textContent = rand(45, 180).toFixed(1);
+  $('#up').textContent   = rand(10, 35).toFixed(1);
   const ok = Math.random() > .12;
+  const state = $('#netState');
   state.textContent = ok ? 'online' : 'packet loss';
   state.style.borderColor = state.style.color = ok ? 'var(--cy)' : '#ff6b6b';
 }
-updateNet();
-setInterval(updateNet, 2600);
+async function ping(){
+  const t0 = performance.now();
+  try {
+    // Same-page fetch avoids CORS issues
+    await fetch(window.location.href, { cache:'no-store', mode:'no-cors' });
+    const dt = Math.max(1, performance.now() - t0);
+    $('#lat').textContent = dt.toFixed(0);
+  } catch {
+    $('#lat').textContent = '—';
+  }
+}
+updateNet(); setInterval(updateNet, 2600);
+ping(); setInterval(ping, 3000);
 
-// ===== Parallax effect on mouse =====
+/* ===== Battery & FPS ===== */
+const batPct = $('#batPct'), batBar = $('#batBar'), batState = $('#batState');
+if ('getBattery' in navigator){
+  navigator.getBattery().then(b => {
+    function upd(){
+      const pct = Math.round(b.level * 100);
+      batPct.textContent = pct + '%';
+      batBar.style.width = pct + '%';
+      batState.textContent = b.charging ? '(charging)' : '';
+    }
+    b.addEventListener('levelchange', upd);
+    b.addEventListener('chargingchange', upd);
+    upd();
+  }).catch(()=> batPct.textContent = 'n/a');
+} else {
+  batPct.textContent = 'n/a';
+}
+
+let fps = 0, frames = 0, last = performance.now();
+function raf(ts){
+  frames++;
+  if (ts - last >= 1000){
+    fps = frames; frames = 0; last = ts;
+    $('#fps').textContent = fps;
+  }
+  requestAnimationFrame(raf);
+}
+requestAnimationFrame(raf);
+
+/* ===== Parallax on core ===== */
+let parallaxOn = true;
 const core = document.querySelector('.core');
-window.addEventListener('mousemove', (e)=>{
+window.addEventListener('mousemove', e=>{
+  if(!parallaxOn) return;
   const { innerWidth:w, innerHeight:h } = window;
   const x = (e.clientX / w - .5) * 10;
   const y = (e.clientY / h - .5) * -10;
   core.style.transform = `translate(-50%, -50%) rotateX(${y}deg) rotateY(${x}deg)`;
-},{ passive:true });
+},{passive:true});
+
+/* ===== Stars particle field ===== */
+const stars = document.getElementById('stars');
+const sctx = stars.getContext('2d');
+let starOn = true;
+function resizeStars(){
+  stars.width = innerWidth; stars.height = innerHeight;
+}
+window.addEventListener('resize', resizeStars);
+resizeStars();
+
+const STAR_COUNT = 160;
+const pts = Array.from({length:STAR_COUNT}, ()=>({
+  x: Math.random()*innerWidth,
+  y: Math.random()*innerHeight,
+  v: 0.2 + Math.random()*0.6,
+  r: Math.random()*1.4+0.4
+}));
+function drawStars(){
+  if (!starOn) { sctx.clearRect(0,0,stars.width,stars.height); requestAnimationFrame(drawStars); return; }
+  sctx.clearRect(0,0,stars.width,stars.height);
+  for(const p of pts){
+    p.x += p.v; if (p.x > innerWidth) { p.x = -5; p.y = Math.random()*innerHeight; }
+    sctx.beginPath(); sctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    sctx.fillStyle = 'rgba(0,250,255,.7)';
+    sctx.shadowColor = 'rgba(0,250,255,.9)';
+    sctx.shadowBlur = 8;
+    sctx.fill(); sctx.shadowBlur = 0;
+  }
+  requestAnimationFrame(drawStars);
+}
+drawStars();
+
+/* ===== Mic visualizer ===== */
+const micBtn = $('#micBtn'), micStatus = $('#micStatus'), micCanvas = $('#micCanvas');
+const mctx = micCanvas.getContext('2d');
+let micStream, analyser, dataArr, micActive=false;
+
+async function startMic(){
+  try{
+    micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    const src = audioCtx.createMediaStreamSource(micStream);
+    src.connect(analyser);
+    dataArr = new Uint8Array(analyser.frequencyBinCount);
+    micActive = true;
+    micStatus.textContent = 'listening…';
+    micBtn.textContent = 'Stop';
+    visualize();
+    log('Mic started');
+  }catch(err){
+    micStatus.textContent = 'permission denied';
+    log('Mic error: ' + err.message);
+  }
+}
+function stopMic(){
+  micStream?.getTracks().forEach(t=>t.stop());
+  micActive=false; micBtn.textContent = 'Start'; micStatus.textContent='idle';
+  mctx.clearRect(0,0,micCanvas.width,micCanvas.height);
+  log('Mic stopped');
+}
+function visualize(){
+  if(!micActive) return;
+  analyser.getByteFrequencyData(dataArr);
+  mctx.clearRect(0,0,micCanvas.width,micCanvas.height);
+  const w = micCanvas.width, h = micCanvas.height;
+  const barW = w / dataArr.length;
+  for(let i=0;i<dataArr.length;i++){
+    const v = dataArr[i]/255;
+    const bh = v*h;
+    mctx.fillStyle = 'rgba(0,250,255,.8)';
+    mctx.fillRect(i*barW, h-bh, barW-1, bh);
+  }
+  requestAnimationFrame(visualize);
+}
+micBtn.addEventListener('click', ()=> micActive ? stopMic() : startMic());
+
+/* ===== Console auto feed ===== */
+const demoLines = [
+  'Initializing protocols…', 'Syncing subsystems…', 'Decrypting telemetry…',
+  'Thermal scan complete.', 'All systems nominal.', 'Monitoring network…'
+];
+let idx=0; setInterval(()=>{ log(demoLines[idx++ % demoLines.length]); }, 2200);
+
+/* ===== Controls ===== */
+$('#tgGrid').addEventListener('change', e => { document.querySelector('.grid').style.display = e.target.checked ? '' : 'none'; });
+$('#tgScan').addEventListener('change', e => { document.querySelector('.scan').style.display = e.target.checked ? '' : 'none'; });
+$('#tgParallax').addEventListener('change', e => { parallaxOn = e.target.checked; if(!parallaxOn){ core.style.transform = 'translate(-50%, -50%)'; } });
+$('#tgStars').addEventListener('change', e => { starOn = e.target.checked; if(!starOn){ sctx.clearRect(0,0,stars.width,stars.height); } });
+
+/* First log */
+log('HUD online');
