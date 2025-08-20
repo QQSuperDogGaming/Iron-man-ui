@@ -193,9 +193,17 @@ body{
   clip-path: inset(0 0 0 0);
   opacity:.8;
 }
-/* keep slight red/white split for effect; overall tone is red in alert */
-.glitch::before{ transform: translate(-2px, 0); text-shadow: -2px 0 #f00; animation: glitch-1 1.8s infinite linear alternate-reverse; }
-.glitch::after { transform: translate(2px, 0);  text-shadow:  2px 0 #fff; animation: glitch-2 2.1s infinite linear alternate-reverse; }
+/* Readability-friendly streak colors */
+.glitch::before{
+  transform: translate(-2px, 0);
+  text-shadow: -2px 0 #ff7043; /* orange-red */
+  animation: glitch-1 1.8s infinite linear alternate-reverse;
+}
+.glitch::after{
+  transform: translate(2px, 0);
+  text-shadow: 2px 0 #ef5350;  /* lighter red */
+  animation: glitch-2 2.1s infinite linear alternate-reverse;
+}
 
 @keyframes glitch-1{
   0%{ clip-path: inset(10% 0 70% 0) }
@@ -213,10 +221,10 @@ body{
   100%{ clip-path: inset(50% 0 25% 0) }
 }
 
-/* ALERT MODE — switch theme variables to red so EVERY reference updates */
+/* ALERT MODE — switch theme variables to a deeper red for readability */
 body.alert{
-  --cy: #ff2b2b;
-  --cy-rgb: 255, 43, 43;
+  --cy: #e53935;             /* deeper, easier red */
+  --cy-rgb: 229, 57, 53;
   background: #0a0505;
 }
 body.alert #redveil{ opacity: 1; }
