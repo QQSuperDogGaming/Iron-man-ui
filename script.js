@@ -43,7 +43,6 @@ function updateNet(){
 async function ping(){
   const t0 = performance.now();
   try {
-    // same-origin fetch avoids CORS; no-cors still gives a round-trip
     await fetch(window.location.href, { cache:'no-store', mode:'no-cors' });
     const dt = Math.max(1, performance.now() - t0);
     $('#lat').textContent = dt.toFixed(0);
@@ -179,11 +178,43 @@ const demoLines = [
 ];
 let idx=0; setInterval(()=>{ log(demoLines[idx++ % demoLines.length]); }, 2200);
 
-/* ===== Controls ===== */
+/* ===== Controls (show/hide panel) ===== */
+const controlsPanel = document.getElementById('controls-panel');
+const ctrlBtn = document.getElementById('ctrlToggleBtn');
+ctrlBtn.addEventListener('click', ()=>{
+  const hidden = controlsPanel.classList.toggle('hidden');
+  ctrlBtn.setAttribute('aria-expanded', String(!hidden));
+  log(hidden ? 'Controls hidden' : 'Controls shown');
+});
+
+/* ===== Individual toggles ===== */
 $('#tgGrid').addEventListener('change', e => { document.querySelector('.grid').style.display = e.target.checked ? '' : 'none'; });
 $('#tgScan').addEventListener('change', e => { document.querySelector('.scan').style.display = e.target.checked ? '' : 'none'; });
 $('#tgParallax').addEventListener('change', e => { parallaxOn = e.target.checked; if(!parallaxOn){ core.style.transform = 'translate(-50%, -50%)'; } });
 $('#tgStars').addEventListener('change', e => { starOn = e.target.checked; if(!starOn){ sctx.clearRect(0,0,stars.width,stars.height); } });
 
-/* First log */
-log('HUD online');
+/* ===== Right-click command: toggle ALERT mode with glitch + red fade ===== */
+let alertOn = false;
+const redveil = document.getElementById('redveil');
+const label = document.getElementById('centerLabel');
+
+window.addEventListener('contextmenu', (e)=>{
+  e.preventDefault();   // capture right-click
+  alertOn = !alertOn;
+  document.body.classList.toggle('alert', alertOn);
+  redveil.style.transitionDuration = alertOn ? '3s' : '1.6s';
+
+  if(alertOn){
+    // Switch to TERATRON with glitch effect
+    label.dataset.text = 'TERATRON';
+    label.innerHTML = 'TERATRON';
+    label.classList.add('glitch');
+    log('ALERT mode engaged: TERATRON protocol');
+  } else {
+    // Revert to ULTRA HD 4K
+    label.classList.remove('glitch');
+    label.dataset.text = 'ULTRA HD 4K';
+    label.innerHTML = 'ULTRA&nbsp;HD&nbsp;4K';
+    log('ALERT mode disengaged: returning to ULTRA HD 4K');
+  }
+});
