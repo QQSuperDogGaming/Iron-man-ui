@@ -34,15 +34,18 @@ body.nofx *{ transition:none !important; animation-play-state:paused !important;
 /* Background layers */
 #stars,.grid,.scan{position:fixed; inset:0}
 #stars{z-index:0; display:block}
+
+/* ✅ Fixed grid: perfect squares instead of stretched rectangles */
 .grid{
   z-index:0; pointer-events:none;
   background:
-    linear-gradient(to right, rgba(var(--cy-rgb),.28) 1px, transparent 1px) 0 0/200px 100%,
-    linear-gradient(to bottom, rgba(var(--cy-rgb),.28) 1px, transparent 1px) 0 0/100% 200px,
-    linear-gradient(to right, rgba(var(--cy-rgb),.10) 1px, transparent 1px) 0 0/40px 100%,
+    linear-gradient(to right, rgba(var(--cy-rgb),.28) 1px, transparent 1px) 0 0/200px 200px,
+    linear-gradient(to bottom, rgba(var(--cy-rgb),.28) 1px, transparent 1px) 0 0/200px 200px,
+    linear-gradient(to right, rgba(var(--cy-rgb),.10) 1px, transparent 1px) 0 0/40px 40px,
     linear-gradient(to bottom, rgba(var(--cy-rgb),.10) 1px, transparent 2px, transparent 0 40px),
     radial-gradient(1200px 800px at 50% 50%, #061115 0%, #060c0f 55%, #05070a 100%);
 }
+
 .scan{
   z-index:1; pointer-events:none;
   background:repeating-linear-gradient(to bottom, rgba(var(--cy-rgb),.05), rgba(var(--cy-rgb),.05) 2px, transparent 2px 6px);
