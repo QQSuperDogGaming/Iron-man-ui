@@ -18,6 +18,12 @@ function log(line){
   logEl.scrollTop = logEl.scrollHeight;
 }
 
+/* Read current theme color from CSS var (--cy-rgb) for canvases */
+function getThemeRGB(){
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--cy-rgb').trim();
+  return v || '0, 250, 255';
+}
+
 /* ===== Time & date ===== */
 function pad(n){ return n.toString().padStart(2,'0'); }
 function tick(){
@@ -38,7 +44,9 @@ function updateNet(){
   const ok = Math.random() > .12;
   const state = $('#netState');
   state.textContent = ok ? 'online' : 'packet loss';
-  state.style.borderColor = state.style.color = ok ? 'var(--cy)' : '#ff6b6b';
+  // Use theme for OK; keep error red
+  const theme = `rgb(${getThemeRGB()})`;
+  state.style.borderColor = state.style.color = ok ? theme : '#ff6b6b';
 }
 async function ping(){
   const t0 = performance.now();
@@ -110,14 +118,22 @@ const pts = Array.from({length:STAR_COUNT}, ()=>({
   v: 0.2 + Math.random()*0.6,
   r: Math.random()*1.4+0.4
 }));
+
+let starFill = `rgba(${getThemeRGB()}, .7)`;
+let starGlow = `rgba(${getThemeRGB()}, .9)`;
+function refreshStarColors(){
+  starFill = `rgba(${getThemeRGB()}, .7)`;
+  starGlow = `rgba(${getThemeRGB()}, .9)`;
+}
+
 function drawStars(){
   if (!starOn) { sctx.clearRect(0,0,stars.width,stars.height); requestAnimationFrame(drawStars); return; }
   sctx.clearRect(0,0,stars.width,stars.height);
   for(const p of pts){
     p.x += p.v; if (p.x > innerWidth) { p.x = -5; p.y = Math.random()*innerHeight; }
     sctx.beginPath(); sctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-    sctx.fillStyle = 'rgba(0,250,255,.7)';
-    sctx.shadowColor = 'rgba(0,250,255,.9)';
+    sctx.fillStyle = starFill;
+    sctx.shadowColor = starGlow;
     sctx.shadowBlur = 8;
     sctx.fill(); sctx.shadowBlur = 0;
   }
@@ -125,10 +141,12 @@ function drawStars(){
 }
 drawStars();
 
-/* ===== Mic visualizer ===== */
+/* ===== Mic visualizer (uses theme color) ===== */
 const micBtn = $('#micBtn'), micStatus = $('#micStatus'), micCanvas = $('#micCanvas');
 const mctx = micCanvas.getContext('2d');
 let micStream, analyser, dataArr, micActive=false;
+
+function micBarColor(){ return `rgba(${getThemeRGB()}, .85)`; }
 
 async function startMic(){
   try{
@@ -161,10 +179,10 @@ function visualize(){
   mctx.clearRect(0,0,micCanvas.width,micCanvas.height);
   const w = micCanvas.width, h = micCanvas.height;
   const barW = w / dataArr.length;
+  mctx.fillStyle = micBarColor();
   for(let i=0;i<dataArr.length;i++){
     const v = dataArr[i]/255;
     const bh = v*h;
-    mctx.fillStyle = 'rgba(0,250,255,.8)';
     mctx.fillRect(i*barW, h-bh, barW-1, bh);
   }
   requestAnimationFrame(visualize);
@@ -198,10 +216,14 @@ $('#tgStars').addEventListener('change', e => toggleStars(e.target.checked));
 let alertOn = false;
 const redveil = document.getElementById('redveil');
 const label = document.getElementById('centerLabel');
+
 function setAlert(on){
   alertOn = on;
   document.body.classList.toggle('alert', alertOn);
   redveil.style.transitionDuration = alertOn ? '3s' : '1.6s';
+  // Update dynamic canvas colors to the new theme
+  refreshStarColors();
+
   if(alertOn){
     label.dataset.text = 'TERATRON';
     label.innerHTML = 'TERATRON';
@@ -262,7 +284,7 @@ window.addEventListener('keydown', (e)=>{
 
   const key = e.key.toLowerCase();
 
-  // prevent page scroll for Space and others
+  // prevent page scroll for Space and fullscreen key
   const needsPrevent = [' ', 'spacebar', 'f'];
   if (needsPrevent.includes(e.key.toLowerCase())) e.preventDefault();
 
