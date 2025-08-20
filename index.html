@@ -54,7 +54,7 @@
     <!-- Radar -->
     <aside class="widget w-radar">
       <h4>Radar</h4>
-      <div class="radar">
+      <div class="radar" id="radar">
         <div class="sweep"></div>
         <div class="blip" style="--x:65%;--y:30%"></div>
         <div class="blip" style="--x:25%;--y:60%"></div>
@@ -73,7 +73,7 @@
     </aside>
 
     <!-- Console feed -->
-    <aside class="widget w-log">
+    <aside class="widget w-log" id="logWidget">
       <h4>Console</h4>
       <div id="log" class="log"></div>
     </aside>
@@ -82,10 +82,10 @@
     <aside id="controls-panel" class="widget w-ctrl">
       <h4>Controls</h4>
       <div class="toggles">
-        <label><input type="checkbox" id="tgGrid" checked> Grid</label>
-        <label><input type="checkbox" id="tgScan" checked> Scanlines</label>
-        <label><input type="checkbox" id="tgParallax" checked> Parallax</label>
-        <label><input type="checkbox" id="tgStars" checked> Stars</label>
+        <label><input type="checkbox" id="tgGrid" checked> Grid (G)</label>
+        <label><input type="checkbox" id="tgScan" checked> Scanlines (S)</label>
+        <label><input type="checkbox" id="tgParallax" checked> Parallax (P)</label>
+        <label><input type="checkbox" id="tgStars" checked> Stars (T)</label>
       </div>
     </aside>
 
@@ -95,6 +95,28 @@
       <div class="muted">Hello, boss.</div>
     </aside>
   </main>
+
+  <!-- Help overlay -->
+  <div id="help" class="help hidden" role="dialog" aria-modal="true" aria-label="Keybinds Help">
+    <div class="help-card">
+      <h3>Keybinds</h3>
+      <ul>
+        <li><b>Space</b> / <b>A</b> — Alert (ULTRA HD 4K ↔ TERATRON)</li>
+        <li><b>C</b> — Show/Hide Controls</li>
+        <li><b>G</b> — Toggle Grid</li>
+        <li><b>S</b> — Toggle Scanlines</li>
+        <li><b>P</b> — Toggle Parallax</li>
+        <li><b>T</b> — Toggle Stars</li>
+        <li><b>M</b> — Mic start/stop</li>
+        <li><b>L</b> — Show/Hide Console Log</li>
+        <li><b>K</b> — Clear console log</li>
+        <li><b>R</b> — Pause/Resume Radar sweep</li>
+        <li><b>F</b> — Fullscreen on/off</li>
+        <li><b>H</b> / <b>?</b> — Show/Hide this Help</li>
+      </ul>
+      <button id="helpClose" class="btn">Close (H)</button>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
