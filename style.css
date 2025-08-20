@@ -7,7 +7,7 @@
   --safe-right:env(safe-area-inset-right,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --safe-left:env(safe-area-inset-left,0px);
-  --fit:1; /* set by JS */
+  --fit:1;
 }
 
 *{box-sizing:border-box}
@@ -20,7 +20,7 @@ body{
   transition:color .6s ease, background-color 1.2s ease;
 }
 
-/* freeze-all helper to avoid flashes during fit/toggles */
+/* freeze-all helper */
 body.nofx *{
   transition:none !important;
   animation-play-state:paused !important;
@@ -52,7 +52,7 @@ body.nofx *{
   opacity:0; transition:opacity 3s ease;
 }
 
-/* HUD root — scaled to fit viewport */
+/* HUD root */
 .hud{
   position:fixed; inset:0; width:100vw; height:calc(var(--vh,1vh)*100); z-index:2;
   padding:calc(var(--safe-top) + 0px) calc(var(--safe-right) + 0px)
@@ -60,23 +60,39 @@ body.nofx *{
   transform:scale(var(--fit)); transform-origin:50% 50%;
 }
 
-/* Core */
+/* Core — always dead center */
 .core{
-  position:absolute; left:50%; top:50%;
-  transform:translate(-50%,-50%); /* JS resets to this during measure -> centered */
-  width:min(58vmin,520px); height:min(58vmin,520px);
-  display:grid; place-items:center;
-  filter:drop-shadow(0 0 12px var(--cy)) drop-shadow(0 0 28px rgba(var(--cy-rgb),.25));
-  transition:filter 1.5s ease;
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(58vmin,520px);
+  height:min(58vmin,520px);
+  display:grid;
+  place-items:center;
+  overflow:visible;
+  contain:layout; /* shadows won’t affect bounding box */
 }
-.ring{position:relative; width:100%; height:100%; border-radius:50%; border:2px solid var(--cy); box-shadow:inset 0 0 40px rgba(var(--cy-rgb),.35); transition:border-color 1.2s, box-shadow 1.2s}
-.ring:before,.ring:after{content:""; position:absolute; inset:7%; border-radius:50%; border:2px dashed rgba(var(--cy-rgb),.75); filter:drop-shadow(0 0 6px var(--cy))}
+.ring{
+  position:relative; width:100%; height:100%; border-radius:50%;
+  border:2px solid var(--cy);
+  box-shadow: inset 0 0 40px rgba(var(--cy-rgb),.35);
+  filter: drop-shadow(0 0 12px var(--cy)) drop-shadow(0 0 28px rgba(var(--cy-rgb),.25));
+  transition:border-color 1.2s, box-shadow 1.2s;
+}
+.ring:before,.ring:after{
+  content:""; position:absolute; inset:7%; border-radius:50%;
+  border:2px dashed rgba(var(--cy-rgb),.75);
+  filter: drop-shadow(0 0 6px var(--cy));
+}
 .ring:before{animation:spin 16s linear infinite}
 .ring:after{inset:18%; border-style:dotted; animation:spin 8s linear reverse infinite}
 .disc{
   position:absolute; width:45%; height:45%; border-radius:50%;
   background:radial-gradient(circle at 50% 50%, rgba(var(--cy-rgb),.85), rgba(var(--cy-rgb),.25) 60%, transparent 70%);
-  border:2px solid rgba(var(--cy-rgb),.8); animation:pulse 2.2s ease-in-out infinite;
+  border:2px solid rgba(var(--cy-rgb),.8);
+  animation:pulse 2.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px var(--cy)) drop-shadow(0 0 28px rgba(var(--cy-rgb),.25));
 }
 .label{
   position:absolute; inset:auto 0 14%; text-align:center; letter-spacing:.25em;
@@ -153,3 +169,4 @@ body.alert #redveil{opacity:1}
 .help-card ul{margin:0 0 .8rem 1.2rem; line-height:1.6}
 .help-card li{margin:.1rem 0}
 .help-card b{color:#fff}
+
