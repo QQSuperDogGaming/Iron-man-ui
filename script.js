@@ -181,40 +181,107 @@ let idx=0; setInterval(()=>{ log(demoLines[idx++ % demoLines.length]); }, 2200);
 /* ===== Controls (show/hide panel) ===== */
 const controlsPanel = document.getElementById('controls-panel');
 const ctrlBtn = document.getElementById('ctrlToggleBtn');
-ctrlBtn.addEventListener('click', ()=>{
+ctrlBtn.addEventListener('click', toggleControls);
+function toggleControls(){
   const hidden = controlsPanel.classList.toggle('hidden');
   ctrlBtn.setAttribute('aria-expanded', String(!hidden));
   log(hidden ? 'Controls hidden' : 'Controls shown');
-});
+}
 
-/* ===== Individual toggles ===== */
-$('#tgGrid').addEventListener('change', e => { document.querySelector('.grid').style.display = e.target.checked ? '' : 'none'; });
-$('#tgScan').addEventListener('change', e => { document.querySelector('.scan').style.display = e.target.checked ? '' : 'none'; });
-$('#tgParallax').addEventListener('change', e => { parallaxOn = e.target.checked; if(!parallaxOn){ core.style.transform = 'translate(-50%, -50%)'; } });
-$('#tgStars').addEventListener('change', e => { starOn = e.target.checked; if(!starOn){ sctx.clearRect(0,0,stars.width,stars.height); } });
+/* ===== Toggles via UI checkboxes ===== */
+$('#tgGrid').addEventListener('change', e => toggleGrid(e.target.checked));
+$('#tgScan').addEventListener('change', e => toggleScan(e.target.checked));
+$('#tgParallax').addEventListener('change', e => toggleParallax(e.target.checked));
+$('#tgStars').addEventListener('change', e => toggleStars(e.target.checked));
 
-/* ===== Right-click command: toggle ALERT mode with glitch + red fade ===== */
+/* ===== Alert (TERATRON) ===== */
 let alertOn = false;
 const redveil = document.getElementById('redveil');
 const label = document.getElementById('centerLabel');
-
-window.addEventListener('contextmenu', (e)=>{
-  e.preventDefault();   // capture right-click
-  alertOn = !alertOn;
+function setAlert(on){
+  alertOn = on;
   document.body.classList.toggle('alert', alertOn);
   redveil.style.transitionDuration = alertOn ? '3s' : '1.6s';
-
   if(alertOn){
-    // Switch to TERATRON with glitch effect
     label.dataset.text = 'TERATRON';
     label.innerHTML = 'TERATRON';
     label.classList.add('glitch');
-    log('ALERT mode engaged: TERATRON protocol');
+    log('ALERT mode: TERATRON');
   } else {
-    // Revert to ULTRA HD 4K
     label.classList.remove('glitch');
     label.dataset.text = 'ULTRA HD 4K';
     label.innerHTML = 'ULTRA&nbsp;HD&nbsp;4K';
-    log('ALERT mode disengaged: returning to ULTRA HD 4K');
+    log('ALERT mode off');
+  }
+}
+function toggleAlert(){ setAlert(!alertOn); }
+
+/* ===== Grid / Scan / Parallax / Stars ===== */
+function toggleGrid(on){ document.querySelector('.grid').style.display = on ? '' : 'none'; $('#tgGrid').checked = on; }
+function toggleScan(on){ document.querySelector('.scan').style.display = on ? '' : 'none'; $('#tgScan').checked = on; }
+function toggleParallax(on){ parallaxOn = on; if(!on){ core.style.transform = 'translate(-50%, -50%)'; } $('#tgParallax').checked = on; }
+function toggleStars(on){ starOn = on; if(!on){ sctx.clearRect(0,0,stars.width,stars.height); } $('#tgStars').checked = on; }
+
+/* ===== Radar pause/resume ===== */
+const radar = document.getElementById('radar');
+let radarPaused = false;
+function toggleRadar(){
+  radarPaused = !radarPaused;
+  radar.classList.toggle('paused', radarPaused);
+  log(radarPaused ? 'Radar: paused' : 'Radar: running');
+}
+
+/* ===== Console log visibility & clear ===== */
+const logWidget = document.getElementById('logWidget');
+function toggleLog(){ logWidget.classList.toggle('hidden'); }
+function clearLog(){ logEl.innerHTML = ''; log('Log cleared'); }
+
+/* ===== Fullscreen ===== */
+function toggleFullscreen(){
+  if (!document.fullscreenElement){
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+}
+
+/* ===== Help overlay ===== */
+const help = document.getElementById('help');
+const helpClose = document.getElementById('helpClose');
+helpClose.addEventListener('click', toggleHelp);
+function toggleHelp(){ help.classList.toggle('hidden'); }
+
+/* ===== Keyboard bindings ===== */
+function isTyping(e){
+  const tag = (e.target?.tagName || '').toLowerCase();
+  const editable = e.target?.isContentEditable;
+  return tag === 'input' || tag === 'textarea' || editable;
+}
+window.addEventListener('keydown', (e)=>{
+  if (isTyping(e)) return;
+
+  const key = e.key.toLowerCase();
+
+  // prevent page scroll for Space and others
+  const needsPrevent = [' ', 'spacebar', 'f'];
+  if (needsPrevent.includes(e.key.toLowerCase())) e.preventDefault();
+
+  switch (key){
+    case ' ': case 'a': toggleAlert(); break;        // Space / A
+    case 'c': toggleControls(); break;               // Controls
+    case 'g': toggleGrid(document.querySelector('.grid').style.display === 'none'); break;
+    case 's': toggleScan(document.querySelector('.scan').style.display === 'none'); break;
+    case 'p': toggleParallax(!parallaxOn); break;
+    case 't': toggleStars(!starOn); break;
+    case 'm': micActive ? stopMic() : startMic(); break;
+    case 'l': toggleLog(); break;
+    case 'k': clearLog(); break;
+    case 'r': toggleRadar(); break;
+    case 'f': toggleFullscreen(); break;
+    case 'h': case '?': toggleHelp(); break;
+    default: return;
   }
 });
+
+/* ===== First log ===== */
+log('HUD online — press H or ? for keybinds');
