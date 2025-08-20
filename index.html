@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- background layers -->
+  <canvas id="stars" aria-hidden="true"></canvas>
   <div class="grid"></div>
   <div class="scan"></div>
 
@@ -21,9 +23,7 @@
     <!-- Time -->
     <aside class="widget w-time">
       <h4>Time</h4>
-      <div class="row">
-        <span id="clock">--:--:--</span>
-      </div>
+      <div class="row"><span id="clock">--:--:--</span></div>
       <div class="muted" id="dateLine">— —</div>
     </aside>
 
@@ -32,7 +32,54 @@
       <h4>Network</h4>
       <div class="row"><span class="muted">Down:</span><strong id="down">--.-</strong><span class="muted">Mbps</span></div>
       <div class="row"><span class="muted">Up:</span><strong id="up">--.-</strong><span class="muted">Mbps</span></div>
+      <div class="row"><span class="muted">Latency:</span><strong id="lat">--</strong><span class="muted">ms</span></div>
       <div class="row"><span class="chip" id="netState">checking…</span></div>
+    </aside>
+
+    <!-- Battery / FPS -->
+    <aside class="widget w-sys">
+      <h4>System</h4>
+      <div class="row"><span class="muted">Battery:</span><strong id="batPct">--%</strong><span class="muted" id="batState"></span></div>
+      <div class="bar"><div id="batBar"></div></div>
+      <div class="row"><span class="muted">FPS:</span><strong id="fps">--</strong></div>
+    </aside>
+
+    <!-- Radar -->
+    <aside class="widget w-radar">
+      <h4>Radar</h4>
+      <div class="radar">
+        <div class="sweep"></div>
+        <div class="blip" style="--x:65%;--y:30%"></div>
+        <div class="blip" style="--x:25%;--y:60%"></div>
+        <div class="blip" style="--x:78%;--y:72%"></div>
+      </div>
+    </aside>
+
+    <!-- Mic visualizer -->
+    <aside class="widget w-mic">
+      <h4>Mic</h4>
+      <canvas id="micCanvas" width="220" height="40"></canvas>
+      <div class="row">
+        <button id="micBtn" class="btn">Start</button>
+        <span class="muted" id="micStatus">idle</span>
+      </div>
+    </aside>
+
+    <!-- Console feed -->
+    <aside class="widget w-log">
+      <h4>Console</h4>
+      <div id="log" class="log"></div>
+    </aside>
+
+    <!-- Controls -->
+    <aside class="widget w-ctrl">
+      <h4>Controls</h4>
+      <div class="toggles">
+        <label><input type="checkbox" id="tgGrid" checked> Grid</label>
+        <label><input type="checkbox" id="tgScan" checked> Scanlines</label>
+        <label><input type="checkbox" id="tgParallax" checked> Parallax</label>
+        <label><input type="checkbox" id="tgStars" checked> Stars</label>
+      </div>
     </aside>
 
     <!-- Hello widget -->
