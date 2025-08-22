@@ -45,7 +45,7 @@ function updateNet(){ $('#down').textContent=rand(45,180).toFixed(1); $('#up').t
 async function ping(){ const t0=performance.now(); try{ await fetch(location.href,{cache:'no-store',mode:'no-cors'}); $('#lat').textContent=Math.max(1,performance.now()-t0).toFixed(0); }catch{ $('#lat').textContent='—'; } }
 updateNet(); setInterval(updateNet,2600); ping(); setInterval(ping,3000);
 
-/* ===== Battery & FPS (bar always visible) ===== */
+/* ===== Battery & FPS ===== */
 const batPct=$('#batPct'), batBar=$('#batBar'), batState=$('#batState'), batWrap=$('#batBarWrap');
 if('getBattery' in navigator){
   navigator.getBattery().then(b=>{
@@ -53,25 +53,15 @@ if('getBattery' in navigator){
       const pct=Math.round(b.level*100);
       batPct.textContent=pct+'%';
       batBar.style.width=pct+'%';
-      if(b.charging){
-        batWrap.classList.add('indeterminate');
-        batState.textContent='(charging)';
-      }else{
-        batWrap.classList.remove('indeterminate');
-        batState.textContent='';
-      }
+      if(b.charging){ batWrap.classList.add('indeterminate'); batState.textContent='(charging)'; }
+      else { batWrap.classList.remove('indeterminate'); batState.textContent=''; }
     }
     b.addEventListener('levelchange',upd);
     b.addEventListener('chargingchange',upd);
     upd();
-  }).catch(()=>{
-    batPct.textContent='n/a';
-    batWrap.classList.add('indeterminate');
-  });
-}else{
-  batPct.textContent='n/a';
-  batWrap.classList.add('indeterminate');
-}
+  }).catch(()=>{ batPct.textContent='n/a'; batWrap.classList.add('indeterminate'); });
+}else{ batPct.textContent='n/a'; batWrap.classList.add('indeterminate'); }
+
 let fps=0,frames=0,last=performance.now();
 function raf(ts){ frames++; if(ts-last>=1000){ fps=frames; frames=0; last=ts; $('#fps').textContent=fps; } requestAnimationFrame(raf); }
 requestAnimationFrame(raf);
@@ -135,33 +125,52 @@ micBtn?.addEventListener('click', ()=> micActive ? stopMic() : startMic());
 const controlsPanel=$('#controls-panel'), ctrlBtn=$('#ctrlToggleBtn');
 ctrlBtn?.addEventListener('click', ()=>{ toggleControls(); scheduleFit(); });
 function toggleControls(){ if(!controlsPanel||!ctrlBtn) return; const hidden=controlsPanel.classList.toggle('hidden'); ctrlBtn.setAttribute('aria-expanded', String(!hidden)); log(hidden?'Controls hidden':'Controls shown'); }
+
 const gridEl=$('.grid'), scanEl=$('.scan');
 $('#tgGrid')?.addEventListener('change', e=>{ toggleGrid(e.target.checked); scheduleFit(); });
 $('#tgScan')?.addEventListener('change', e=>{ toggleScan(e.target.checked); scheduleFit(); });
 $('#tgParallax')?.addEventListener('change', e=>{ toggleParallax(e.target.checked); });
 $('#tgStars')?.addEventListener('change', e=>{ toggleStars(e.target.checked); });
+
 function toggleGrid(on){ if(gridEl){ gridEl.style.display=on?'':'none'; } const cb=$('#tgGrid'); if(cb) cb.checked=on; }
 function toggleScan(on){ if(scanEl){ scanEl.style.display=on?'':'none'; } const cb=$('#tgScan'); if(cb) cb.checked=on; }
 function toggleParallax(on){ parallaxOn=on; if(!on){ coreEl.style.transform='translate(-50%,-50%)'; } const cb=$('#tgParallax'); if(cb) cb.checked=on; }
 function toggleStars(on){ starOn=on; if(!on){ sctx.clearRect(0,0,stars.width,stars.height); } const cb=$('#tgStars'); if(cb) cb.checked=on; }
 
+/* ===== Morph duration control ===== */
+let morphMs = 900; // default = 0.9s
+const morphRange = $('#morphSeconds');
+const morphNum   = $('#morphSecondsNum');
+
+function applyMorphSeconds(sec){
+  const clamped = Math.max(0.1, Math.min(5, Number(sec) || 0.9));
+  morphMs = Math.round(clamped * 1000);
+  document.documentElement.style.setProperty('--morphDur', clamped + 's'); // drives CSS transitions
+  if(morphRange && Number(morphRange.value) !== clamped) morphRange.value = String(clamped);
+  if(morphNum && Number(morphNum.value) !== clamped) morphNum.value = String(clamped);
+  log('Morph duration set to ' + clamped + 's');
+}
+applyMorphSeconds(Number(morphRange?.value || morphNum?.value) || 0.9);
+morphRange?.addEventListener('input', e => applyMorphSeconds(e.target.value));
+morphNum?.addEventListener('input',   e => applyMorphSeconds(e.target.value));
+
 /* ===== Alert morph with glitch ===== */
-let alertOn=false; const label=$('#centerLabel'); const MORPH_MS=900;
+let alertOn=false; const label=$('#centerLabel');
 function setAlert(on){
   if(on===alertOn) return; alertOn=on;
 
-  // Brief glitch overlay
+  // Brief glitch overlay (timed by morphMs)
   const overlay=document.createElement('div'); overlay.className='screen-glitch'; document.body.appendChild(overlay);
 
   // Swap label so it fades with theme
   if(on){ label.dataset.text='TERATRON'; label.innerHTML='TERATRON'; label.classList.add('glitch'); log('Alert → TERATRON'); }
-  else{ label.classList.remove('glitch'); label.dataset.text='ULTRA HD 4K'; label.innerHTML='ULTRA&nbsp;HD&nbsp;4K'; log('Alert → ULTRA HD 4K'); }
+  else { label.classList.remove('glitch'); label.dataset.text='ULTRA HD 4K'; label.innerHTML='ULTRA&nbsp;HD&nbsp;4K'; log('Alert → ULTRA HD 4K'); }
 
   // Flip theme variables (direct cross-fade via CSS)
   document.body.classList.toggle('alert', alertOn);
 
-  // Cleanup
-  setTimeout(()=>{ overlay.remove(); refreshStarColors(); scheduleFit(); }, MORPH_MS);
+  // Cleanup after the configured duration
+  setTimeout(()=>{ overlay.remove(); refreshStarColors(); scheduleFit(); }, morphMs);
 }
 function toggleAlert(){ setAlert(!alertOn); }
 
@@ -197,5 +206,5 @@ addEventListener('keydown', e=>{
 });
 
 /* ===== Boot ===== */
-log('HUD online — separated files loaded. Space/A for alert, C to toggle controls.');
+log('HUD online — morph duration control ready. Space/A toggles alert.');
 scheduleFit();
