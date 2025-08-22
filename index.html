@@ -1,90 +1,98 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>ULTRA HD 4K HUD</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Swirl The Wheel — sweet decisions</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<?xml version='1.0' encoding='UTF-8'?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23F7E04B' stroke='%23201c1a' stroke-width='6'/><text x='50' y='58' font-size='34' text-anchor='middle'>🍭</text></svg>">
+  <meta name="color-scheme" content="light only">
 </head>
 <body>
-  <!-- background layers -->
-  <canvas id="stars" aria-hidden="true"></canvas>
-  <div class="grid" aria-hidden="true"></div>
-  <div class="scan" aria-hidden="true"></div>
-  <div id="redveil" aria-hidden="true"></div>
+  <header class="brand">
+    <h1>Swirl The Wheel</h1>
+    <p class="sub">Sweet decisions, one satisfying spin.</p>
+  </header>
 
-  <!-- controls toggle (pinned on top) -->
-  <button id="ctrlToggleBtn" class="ctrl-fab" aria-controls="controls-panel" aria-expanded="true" title="Show/Hide Controls">☰</button>
+  <main class="wrap">
+    <!-- WHEEL -->
+    <section class="stage card">
+      <canvas id="wheel" width="720" height="720" aria-label="Lollipop wheel"></canvas>
 
-  <!-- HUD -->
-  <main class="hud">
-    <section class="core" aria-label="Ultra HD 4K core">
-      <div class="ring"></div>
-      <div class="disc"></div>
-      <div id="centerLabel" class="label" data-text="ULTRA HD 4K">ULTRA&nbsp;HD&nbsp;4K</div>
+      <!-- lollipop stick -->
+      <div class="stick" aria-hidden="true"></div>
+
+      <!-- pointer at 12 o’clock -->
+      <div class="pointer" aria-hidden="true"><div class="tick"></div></div>
+
+      <button id="spinBtn" class="cta" aria-label="Spin the wheel">SPIN</button>
+      <p id="result" class="result" role="status" aria-live="polite"></p>
     </section>
 
-    <aside class="widget w-time">
-      <h4>Time</h4>
-      <div class="row"><span id="clock">--:--:--</span></div>
-      <div class="muted" id="dateLine">— —</div>
-    </aside>
-
-    <aside class="widget w-net">
-      <h4>Network</h4>
-      <div class="row"><span class="muted">Down:</span><strong id="down">--.-</strong><span class="muted">Mbps</span></div>
-      <div class="row"><span class="muted">Up:</span><strong id="up">--.-</strong><span class="muted">Mbps</span></div>
-      <div class="row"><span class="muted">Latency:</span><strong id="lat">--</strong><span class="muted">ms</span></div>
-      <div class="row"><span class="chip" id="netState">checking…</span></div>
-    </aside>
-
-    <aside class="widget w-sys">
-      <h4>System</h4>
-      <div class="row"><span class="muted">Battery:</span><strong id="batPct">--%</strong><span class="muted" id="batState"></span></div>
-      <div class="bar" id="batBarWrap"><div id="batBar"></div></div>
-      <div class="row"><span class="muted">FPS:</span><strong id="fps">--</strong></div>
-    </aside>
-
-    <aside class="widget w-radar">
-      <h4>Radar</h4>
-      <div class="radar" id="radar">
-        <div class="sweep"></div>
-        <div class="blip" style="--x:65%;--y:30%"></div>
-        <div class="blip" style="--x:25%;--y:60%"></div>
-        <div class="blip" style="--x:78%;--y:72%"></div>
-      </div>
-    </aside>
-
-    <aside class="widget w-mic">
-      <h4>Mic</h4>
-      <canvas id="micCanvas" width="220" height="40"></canvas>
+    <!-- CONTROLS -->
+    <section class="controls card">
+      <h2 class="sec">Choices</h2>
+      <form id="choiceForm" class="choices" autocomplete="off">
+        <input id="choiceInput" type="text" placeholder="Add a choice (e.g., 'Sushi')" />
+        <button class="add" type="submit">Add</button>
+      </form>
+      <ul id="choiceList" class="choice-list"></ul>
       <div class="row">
-        <button id="micBtn" class="btn">Start</button>
-        <span class="muted" id="micStatus">idle</span>
+        <button id="clearChoices" class="ghost" type="button">Clear</button>
+        <button id="shuffleChoices" class="ghost" type="button">Shuffle</button>
       </div>
-    </aside>
 
-    <aside class="widget w-log" id="logWidget">
-      <h4>Console</h4>
-      <div id="log" class="log"></div>
-    </aside>
+      <hr class="sep"/>
 
-    <aside id="controls-panel" class="widget w-ctrl">
-      <h4>Controls</h4>
-      <div class="toggles">
-        <label><input type="checkbox" id="tgGrid" checked> Grid (G)</label>
-        <label><input type="checkbox" id="tgScan" checked> Scanlines (S)</label>
-        <label><input type="checkbox" id="tgParallax" checked> Parallax (P)</label>
-        <label><input type="checkbox" id="tgStars" checked> Stars (T)</label>
+      <h2 class="sec">Ribbon Colors (swirl order)</h2>
+      <fieldset class="flavors">
+        <legend>Toggle colors to style the candy</legend>
+        <label><input type="checkbox" data-color="#ff2d2d" checked> Red</label>
+        <label><input type="checkbox" data-color="#ff7f00" checked> Orange</label>
+        <label><input type="checkbox" data-color="#ffd400" checked> Yellow</label>
+        <label><input type="checkbox" data-color="#28cc6b" checked> Green</label>
+        <label><input type="checkbox" data-color="#2f7bff" checked> Blue</label>
+        <label><input type="checkbox" data-color="#7a3da0" checked> Indigo</label>
+        <label><input type="checkbox" data-color="#ff6bd6" checked> Pink</label>
+        <label><input type="checkbox" data-color="#ffffff" > White</label>
+      </fieldset>
+
+      <div class="row">
+        <label class="small">
+          Spin Power
+          <input id="power" type="range" min="0.5" max="2.5" step="0.1" value="1.6">
+        </label>
+        <label class="small">
+          Friction
+          <input id="friction" type="range" min="0.985" max="0.9995" step="0.0005" value="0.993">
+        </label>
+        <label class="small">
+          Band px
+          <input id="bandPx" type="range" min="10" max="50" step="1" value="24">
+        </label>
+        <label class="small">
+          Turns
+          <input id="turns" type="range" min="4" max="12" step="1" value="7">
+        </label>
       </div>
-    </aside>
 
-    <aside class="widget w-hello">
-      <h4>Status</h4>
-      <div class="muted">Hello, boss.</div>
-    </aside>
+      <p class="note">Result = the choice under the pointer when the wheel stops. Choices are saved locally.</p>
+    </section>
   </main>
 
-  <script src="script.js"></script>
+  <footer class="paper">
+    <small>Inspired by vintage candy swirls. Built for learning.</small>
+  </footer>
+
+  <!-- Winner modal -->
+  <div id="winnerModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Winner!</h3>
+      <p id="winnerText">—</p>
+      <button id="closeModal" class="cta" type="button">OK</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
