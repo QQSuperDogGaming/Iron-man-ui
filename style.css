@@ -4,20 +4,25 @@
   --bg:#05070a;
   --glass:rgba(var(--cy-rgb),.08);
   --fit:1;
+  --morphDur:.9s;           /* default morph duration */
+
+  /* Radial grid controls (optional) */
+  --grid-ring-gap: 40px;    /* distance between rings */
+  --grid-spoke-step: 30deg; /* angle between spokes   */
 }
 
-/* Smooth, direct theme transitions (no hue-rotate) */
+/* Smooth, direct theme transitions (driven by --morphDur) */
 :root, body, .core, .widget, .disc, .ring, .label,
 .chip, .btn, .bar>div, .radar, .ctrl-fab, .help-card {
   transition:
-    --cy .9s ease,
-    --cy-rgb .9s ease,
-    border-color .9s ease,
-    background-color .9s ease,
-    box-shadow .9s ease,
-    filter .9s ease,
-    text-shadow .9s ease,
-    color .9s ease;
+    --cy var(--morphDur) ease,
+    --cy-rgb var(--morphDur) ease,
+    border-color var(--morphDur) ease,
+    background-color var(--morphDur) ease,
+    box-shadow var(--morphDur) ease,
+    filter var(--morphDur) ease,
+    text-shadow var(--morphDur) ease,
+    color var(--morphDur) ease;
 }
 
 /* Reset */
@@ -35,7 +40,7 @@ body.nofx *{ transition:none !important; animation-play-state:paused !important;
 #stars,.grid,.scan{position:fixed; inset:0}
 #stars{z-index:0; display:block}
 
-/* ✅ Fixed grid: perfect squares instead of stretched rectangles */
+/* SQUARE GRID (default): perfect squares */
 .grid{
   z-index:0; pointer-events:none;
   background:
@@ -46,6 +51,30 @@ body.nofx *{ transition:none !important; animation-play-state:paused !important;
     radial-gradient(1200px 800px at 50% 50%, #061115 0%, #060c0f 55%, #05070a 100%);
 }
 
+/* RADIAL HUD GRID (enable with .grid.radial or body.radial-grid) */
+body.radial-grid .grid, .grid.radial{
+  background:
+    conic-gradient( from 0deg, rgba(var(--cy-rgb), .17) 0deg 1deg, transparent 1deg var(--grid-spoke-step) ),
+    repeating-radial-gradient( circle at 50% 50%, rgba(var(--cy-rgb), .10) 0 1px, transparent 1px calc(var(--grid-ring-gap)) ),
+    conic-gradient(
+      from 0deg,
+      rgba(var(--cy-rgb), .30) 0deg 0.8deg, transparent 0.8deg 89.2deg,
+      rgba(var(--cy-rgb), .30) 89.2deg 90deg, transparent 90deg 179.2deg,
+      rgba(var(--cy-rgb), .30) 179.2deg 180deg, transparent 180deg 269.2deg,
+      rgba(var(--cy-rgb), .30) 269.2deg 270deg, transparent 270deg 359.2deg,
+      rgba(var(--cy-rgb), .30) 359.2deg 360deg
+    ),
+    repeating-radial-gradient( circle at 50% 50%,
+      transparent 0 calc(var(--grid-ring-gap) * 3.9),
+      rgba(var(--cy-rgb), .28) calc(var(--grid-ring-gap) * 3.9) calc(var(--grid-ring-gap) * 4)
+    ),
+    radial-gradient(1200px 800px at 50% 50%, #061115 0%, #060c0f 55%, #05070a 100%);
+}
+/* optional slow spin for radial look */
+.grid.spin{ animation:radial-rotate 40s linear infinite; }
+@keyframes radial-rotate{ to{ transform:rotate(360deg); } }
+
+/* Scanlines */
 .scan{
   z-index:1; pointer-events:none;
   background:repeating-linear-gradient(to bottom, rgba(var(--cy-rgb),.05), rgba(var(--cy-rgb),.05) 2px, transparent 2px 6px);
@@ -57,7 +86,7 @@ body.nofx *{ transition:none !important; animation-play-state:paused !important;
 #redveil{
   position:fixed; inset:0; pointer-events:none; z-index:3;
   background:radial-gradient(circle at 50% 50%, rgba(255,0,0,0.0), rgba(255,0,0,0.10));
-  opacity:0; transition:opacity 0.9s ease;
+  opacity:0; transition:opacity var(--morphDur) ease;
 }
 
 /* HUD */
